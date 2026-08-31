@@ -48,7 +48,11 @@ class ContentAcquisitionManager:
                     logger.info(f"Found PDF link on page: {res.pdf_url}. Triggering Level 4 PDF extraction...")
                     pdf_res = await self.pdf_extractor.extract_from_url(res.pdf_url)
                     if pdf_res:
+                        if fallback_raw_text:
+                            pdf_res.content_text += f"\n\n[Telegram Post Excerpt]:\n{fallback_raw_text}"
                         return pdf_res
+                if fallback_raw_text:
+                    res.content_text += f"\n\n[Telegram Post Excerpt]:\n{fallback_raw_text}"
                 return res
 
         # Step 3: Try Level 2 Headless Browser on URLs
@@ -59,7 +63,11 @@ class ContentAcquisitionManager:
                 if res.pdf_url:
                     pdf_res = await self.pdf_extractor.extract_from_url(res.pdf_url)
                     if pdf_res:
+                        if fallback_raw_text:
+                            pdf_res.content_text += f"\n\n[Telegram Post Excerpt]:\n{fallback_raw_text}"
                         return pdf_res
+                if fallback_raw_text:
+                    res.content_text += f"\n\n[Telegram Post Excerpt]:\n{fallback_raw_text}"
                 return res
 
         # Step 4: Try Level 3 Search Fallback using query terms (organization, post title)
