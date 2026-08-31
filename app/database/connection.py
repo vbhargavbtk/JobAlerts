@@ -15,8 +15,8 @@ from app.database.models import Base
 
 logger = logging.getLogger(__name__)
 
-# Normalize database URL for async drivers
-db_url = settings.DATABASE_URL
+# Normalize database URL for async drivers and strip any whitespace/newlines
+db_url = settings.DATABASE_URL.strip()
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
