@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # AI Provider 1: NVIDIA NIM
     NIM_API_KEY: Optional[str] = None
     NIM_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
-    NIM_MODEL: str = "meta/llama-3.3-70b-instruct"
+    NIM_MODEL: str = "meta/llama-3.1-70b-instruct"
 
     # AI Provider 2: Google Gemini
     GEMINI_API_KEY: Optional[str] = None
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # AI Provider 3: OpenRouter
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+    OPENROUTER_MODEL: str = "google/gemini-2.0-flash-exp:free"
 
     # Content Acquisition Settings
     TAVILY_API_KEY: Optional[str] = None
