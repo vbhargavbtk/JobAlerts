@@ -1,0 +1,19 @@
+channels:
+- id: sarkari_job_alerts_sample
+  name: Sarkari Result & Govt Jobs
+  telegram_channel_id: '@sarkariresult_alerts'
+  type: public
+  enabled: true
+  description: Major central & state government recruitment alerts
+- id: engg_jobs_sample
+  name: Engineering & Technical Govt Jobs
+  telegram_channel_id: '@technical_govt_jobs'
+  type: public
+  enabled: true
+  description: PSU, GATE, and Engineering recruitment
+- id: private_group_sample
+  name: Private Premium Job Discussion
+  telegram_channel_id: '-1002345678901'
+  type: private
+  enabled: false
+  description: Example private recruitment channel joined by user

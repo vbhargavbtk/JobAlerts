@@ -1,0 +1,38 @@
+# ==============================================================================
+# AI PROVIDER ROUTING CONFIGURATION
+# ==============================================================================
+# Fallback order: Primary -> Secondary -> Tertiary
+# If all fail: AI_REVIEW_REQUIRED
+# ==============================================================================
+
+providers:
+  - id: "nvidia_nim"
+    name: "NVIDIA NIM"
+    priority: 1
+    enabled: true
+    adapter: "NvidiaNIMProvider"
+    model: "meta/llama-3.3-70b-instruct"
+    timeout_seconds: 45
+    max_retries: 2
+
+  - id: "gemini"
+    name: "Google Gemini Flash"
+    priority: 2
+    enabled: true
+    adapter: "GeminiProvider"
+    model: "gemini-2.5-flash"
+    timeout_seconds: 30
+    max_retries: 2
+
+  - id: "openrouter"
+    name: "OpenRouter"
+    priority: 3
+    enabled: true
+    adapter: "OpenRouterProvider"
+    model: "meta-llama/llama-3.3-70b-instruct:free"
+    timeout_seconds: 45
+    max_retries: 2
+
+circuit_breaker:
+  failure_threshold: 3
+  recovery_timeout_seconds: 300

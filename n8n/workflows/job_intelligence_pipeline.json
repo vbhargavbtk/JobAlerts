@@ -1,0 +1,87 @@
+{
+  "name": "Government Job Notification Intelligence Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-event",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook Inbound Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"body\"][\"is_potential_job\"]}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Filter: Is Potential Job?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:8000/webhook/inbound-message",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{JSON.stringify($json[\"body\"])}}"
+      },
+      "name": "Trigger Intelligence Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [720, 260]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE processed_messages SET processing_status = 'NON_JOB' WHERE id = '{{$json[\"body\"][\"db_message_id\"]}}';"
+      },
+      "name": "Archive Non-Job",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [720, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Inbound Message": {
+      "main": [
+        [
+          {
+            "node": "Filter: Is Potential Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Is Potential Job?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Intelligence Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Archive Non-Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

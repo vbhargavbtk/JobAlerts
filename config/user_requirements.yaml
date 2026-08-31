@@ -1,0 +1,73 @@
+# ==============================================================================
+# DEFAULT USER ELIGIBILITY REQUIREMENTS PROFILE
+# ==============================================================================
+# This serves as the initial seed and offline template.
+# The user can dynamically edit these requirements via:
+# 1. Web Dashboard: http://localhost:8000/admin/requirements
+# 2. REST API: PUT /api/requirements
+# 3. CLI: py -m app.cli.requirements
+# 4. Telegram Bot: /profile and /set_* commands
+# ==============================================================================
+
+education:
+  minimum_level: "bachelors"    # Options: any, 10th, 12th, diploma, bachelors, masters, doctorate
+  accepted_degrees:
+    - "B.E."
+    - "B.Tech"
+    - "B.Sc"
+    - "BCA"
+    - "MCA"
+    - "M.Tech"
+    - "Graduation in any discipline"
+  branches:
+    - "Computer Science"
+    - "Information Technology"
+    - "CSE"
+    - "IT"
+    - "Electronics"
+    - "ECE"
+    - "Any Branch"
+  minimum_percentage: 60.0
+
+experience:
+  fresher_allowed: true
+  max_years_experience_required: 2
+
+age:
+  maximum: 30
+  category: "General"           # Options: General, OBC, SC, ST, EWS, PwD
+  category_age_relaxations:
+    OBC: 3
+    SC: 5
+    ST: 5
+    PwD: 10
+    Ex-Serviceman: 5
+
+job_categories:
+  - "central_government"
+  - "state_government"
+  - "psu"
+  - "banking"
+  - "defense"
+  - "autonomous_body"
+
+location:
+  allowed:
+    - "All India"
+    - "India"
+    - "Delhi"
+    - "Telangana"
+    - "Andhra Pradesh"
+    - "Karnataka"
+    - "Maharashtra"
+  exclude_locations: []
+
+excluded_types:
+  - "internship"
+  - "unpaid_volunteer"
+  - "ad_hoc_short_term"
+
+notification_preferences:
+  alert_on_uncertain: true
+  min_vacancies: 1
+  min_salary_inr_month: 0

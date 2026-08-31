@@ -1,0 +1,39 @@
+# ==============================================================================
+# RENDER BLUEPRINT SPECIFICATION
+# Personal Government Job Notification Intelligence & Eligibility Alert System
+# ==============================================================================
+services:
+  - type: web
+    name: job-notification-intelligence
+    runtime: python
+    region: oregon # or frankfurt, singapore, ohio
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: TELEGRAM_SESSION
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ALERT_CHAT_ID
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NIM_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: N8N_WEBHOOK_URL
+        sync: false
