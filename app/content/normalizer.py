@@ -17,6 +17,10 @@ class NormalizedContent(BaseModel):
     organization: Optional[str] = Field(None, description="Discovered issuing organization name")
     content_text: str = Field(..., description="Extracted readable plain text content")
     pdf_url: Optional[str] = Field(None, description="Discovered direct link to official circular PDF")
+    deep_links: List[str] = Field(
+        default_factory=list,
+        description="Candidate deep links discovered on the page (official portals, detail posts)"
+    )
     retrieved_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat(),
         description="ISO 8601 UTC timestamp of retrieval"

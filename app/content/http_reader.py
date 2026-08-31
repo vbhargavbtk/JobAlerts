@@ -79,14 +79,40 @@ class HttpReader:
                 # Extract title
                 title = soup.title.string.strip() if soup.title and soup.title.string else None
 
-                # Search for PDF links
+                # Search strictly for actual PDF document links (.pdf) and deep candidate links
                 discovered_pdf: Optional[str] = None
+                deep_links: list[str] = []
+                seen_links = set()
+
                 for a_tag in soup.find_all("a", href=True):
-                    href = a_tag["href"]
-                    if PDF_EXT_PATTERN.search(href) or "download" in href.lower() or "notification" in href.lower():
-                        full_pdf_url = urljoin(final_url, href)
-                        discovered_pdf = full_pdf_url
-                        break
+                    href = a_tag["href"].strip()
+                    full_url = urljoin(final_url, href)
+                    if full_url in seen_links or full_url.startswith("javascript:") or full_url.startswith("mailto:"):
+                        continue
+                    seen_links.add(full_url)
+
+                    # Check for direct PDF link
+                    if href.lower().endswith(".pdf") or ".pdf?" in href.lower() or "/pdf/" in href.lower():
+                        if not discovered_pdf:
+                            discovered_pdf = full_url
+
+                    # Check for official links or detail article links
+                    lower_url = full_url.lower()
+                    if (
+                        ".gov.in" in lower_url
+                        or ".nic.in" in lower_url
+                        or "notification" in lower_url
+                        or "recruitment" in lower_url
+                        or "apply" in lower_url
+                        or "career" in lower_url
+                        or "/post" in lower_url
+                        or "/job" in lower_url
+                    ):
+                        if full_url != final_url and full_url != url:
+                            deep_links.append(full_url)
+
+                # Prioritize official gov links first, then detail links
+                deep_links.sort(key=lambda u: (0 if (".gov.in" in u or ".nic.in" in u) else 1))
 
                 # Extract readable text
                 paragraphs = [p.get_text(separator=" ", strip=True) for p in soup.find_all(["p", "h1", "h2", "h3", "li", "table"])]
@@ -105,8 +131,9 @@ class HttpReader:
                     source_type=source_type,
                     title=title,
                     organization=None,
-                    content_text=content_text[:25000],  # Keep reasonable size
+                    content_text=content_text[:35000],  # Keep generous size
                     pdf_url=discovered_pdf,
+                    deep_links=deep_links[:10],
                     retrieval_method="http_direct",
                     source_confidence=confidence,
                     verification_status=verif_status

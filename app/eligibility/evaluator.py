@@ -92,15 +92,8 @@ class EligibilityEvaluator:
         )
 
     def _evaluate_job_type(self, job: JobExtractionSchema) -> EligibilityCriterionResult:
-        if not job.job_type:
-            return EligibilityCriterionResult(
-                status="UNKNOWN",
-                details="Job category / employment type not explicitly declared in source",
-                extracted_value=None,
-                required_value=self.profile.job_categories
-            )
-
-        job_type_lower = job.job_type.lower()
+        job_type_str = job.job_type or "government"
+        job_type_lower = job_type_str.lower()
         for excluded in self.profile.excluded_types:
             if excluded.lower() in job_type_lower:
                 return EligibilityCriterionResult(
@@ -112,8 +105,8 @@ class EligibilityEvaluator:
 
         return EligibilityCriterionResult(
             status="PASS",
-            details=f"Job type '{job.job_type}' is acceptable",
-            extracted_value=job.job_type,
+            details=f"Job type '{job_type_str}' is acceptable",
+            extracted_value=job_type_str,
             required_value=self.profile.job_categories
         )
 
