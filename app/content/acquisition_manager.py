@@ -73,8 +73,8 @@ class ContentAcquisitionManager:
                         return pdf_res
                 return search_res
 
-        # Step 5: If all external content retrieval fails, use Telegram raw text as last resort
-        if fallback_raw_text and len(fallback_raw_text.strip()) > 50:
+        # Step 5: If all external content retrieval fails, use Telegram raw text as guaranteed fallback
+        if fallback_raw_text and len(fallback_raw_text.strip()) >= 10:
             logger.info("Using raw Telegram text as fallback content.")
             return NormalizedContent(
                 source_url=urls[0] if urls else "telegram://internal",
