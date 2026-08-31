@@ -226,9 +226,8 @@ async def delete_channel(channel_id: str):
     return {"status": "success", "message": f"Channel {channel_id} deleted."}
 
 
-# ------------------------------------------------------------------------------
-# N8N / WEBHOOK PROCESSING PIPELINE (Component B & Pipeline)
-# ------------------------------------------------------------------------------
+from app.telegram.message_parser import extract_urls
+
 @app.post("/webhook/inbound-message", summary="Inbound Message Webhook from Listener or n8n")
 async def inbound_message_webhook(
     payload: Dict[str, Any] = Body(...),
@@ -238,10 +237,11 @@ async def inbound_message_webhook(
     Receives raw message payload, persists if not already stored,
     and runs through the intelligence pipeline.
     """
-    telegram_msg_id = str(payload.get("telegram_message_id", ""))
-    channel_id = str(payload.get("channel_id", "external"))
-    text = payload.get("message_text", "")
-    urls = payload.get("urls", [])
+    import uuid
+    telegram_msg_id = str(payload.get("telegram_message_id") or payload.get("message_id") or f"msg_{uuid.uuid4()}")
+    channel_id = str(payload.get("channel_id") or payload.get("channel_identifier") or "external")
+    text = payload.get("message_text") or payload.get("text") or ""
+    urls = payload.get("urls") or extract_urls(text)
 
     repo = DatabaseRepository(db)
 
