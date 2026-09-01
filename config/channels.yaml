@@ -5,21 +5,52 @@ channels:
   type: public
   enabled: true
   description: Central & State Government Recruitment Updates
-- id: sarkari_job_alerts_sample
+
+- id: sarkari_result_alerts
   name: Sarkari Result & Govt Jobs
   telegram_channel_id: '@sarkariresult_alerts'
   type: public
   enabled: true
   description: Major central & state government recruitment alerts
-- id: engg_jobs_sample
-  name: Engineering & Technical Govt Jobs
+
+- id: sarkari_job_city
+  name: Sarkari Job City
+  telegram_channel_id: '@sarkarijobcity'
+  type: public
+  enabled: true
+  description: Latest all-India government job vacancies and notifications
+
+- id: freejobalert_official
+  name: Free Job Alert Official
+  telegram_channel_id: '@freejobalert'
+  type: public
+  enabled: true
+  description: Daily employment news and central sarkari naukri updates
+
+- id: sarkari_exam_updates
+  name: Sarkari Exam Updates
+  telegram_channel_id: '@sarkariexam'
+  type: public
+  enabled: true
+  description: State and central government recruitment notifications
+
+- id: upsc_notifications
+  name: UPSC & Civil Services Notifications
+  telegram_channel_id: '@upscnotifications'
+  type: public
+  enabled: true
+  description: Union Public Service Commission circulars and exams
+
+- id: ssc_central_jobs
+  name: SSC & Central Govt Jobs
+  telegram_channel_id: '@sscofficialchannel'
+  type: public
+  enabled: true
+  description: Staff Selection Commission CGL, CHSL, JE, and technical posts
+
+- id: technical_govt_jobs
+  name: Technical, PSU & GATE Recruitment
   telegram_channel_id: '@technical_govt_jobs'
   type: public
   enabled: true
-  description: PSU, GATE, and Engineering recruitment
-- id: private_group_sample
-  name: Private Premium Job Discussion
-  telegram_channel_id: '-1002345678901'
-  type: private
-  enabled: false
-  description: Example private recruitment channel joined by user
+  description: PSU, GATE, IT, and Engineering recruitment announcements
