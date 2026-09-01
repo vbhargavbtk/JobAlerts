@@ -46,8 +46,9 @@ def compute_job_fingerprint(
 
     fingerprint_raw = "|".join(filter(None, components))
 
-    # Fallback to post name and deadline if org is missing
+    # Fallback to URLs or notification number if org and post name are empty
     if not fingerprint_raw:
-        fingerprint_raw = f"unknown_job_{job.organization}_{job.post_name}"
+        anchor = canonical_url or job.official_notification_url or job.official_apply_url or "generic_job"
+        fingerprint_raw = f"fallback_{anchor}_{norm_deadline}"
 
     return hashlib.sha256(fingerprint_raw.encode("utf-8")).hexdigest()

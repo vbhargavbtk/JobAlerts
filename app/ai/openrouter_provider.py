@@ -78,9 +78,12 @@ class OpenRouterProvider(AIProvider):
                 data = response.json()
                 raw_text = data["choices"][0]["message"]["content"].strip()
                 clean_json_str = _clean_json_markdown(raw_text)
-                parsed_dict = json.loads(clean_json_str)
+                parsed_data = json.loads(clean_json_str)
 
-                schema_validated = JobExtractionSchema.model_validate(parsed_dict)
+                if isinstance(parsed_data, list):
+                    parsed_data = parsed_data[0] if parsed_data else {}
+
+                schema_validated = JobExtractionSchema.model_validate(parsed_data)
                 return schema_validated, None
 
         except json.JSONDecodeError as jde:
@@ -97,4 +100,22 @@ def _clean_json_markdown(text: str) -> str:
         text = text[3:]
     if text.endswith("```"):
         text = text[:-3]
-    return text.strip()
+    text = text.strip()
+
+    first_brace = text.find("{")
+    first_bracket = text.find("[")
+    
+    start_idx = -1
+    if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+        start_idx = first_brace
+        end_idx = text.rfind("}")
+    elif first_bracket != -1:
+        start_idx = first_bracket
+        end_idx = text.rfind("]")
+    else:
+        end_idx = -1
+
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        return text[start_idx:end_idx + 1].strip()
+
+    return text

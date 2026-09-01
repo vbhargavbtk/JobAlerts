@@ -12,22 +12,31 @@ URL_PATTERN = re.compile(
     re.IGNORECASE
 )
 
-# Common indicators of job/recruitment posts
+# Common indicators of job/recruitment posts (English & Hindi)
 JOB_INDICATORS = [
     "recruitment", "vacancy", "vacancies", "notification", "apply online",
     "government job", "govt job", "employment", "posts", "post", "eligibility",
     "recruitment notification", "apprentice", "apprenticeship", "selection",
     "application", "officer", "engineer", "clerk", "assistant", "salary",
-    "last date", "qualification", "sarkari"
+    "last date", "qualification", "sarkari", "hiring", "opening", "openings",
+    "advt", "advertisement", "walkin", "walk-in", "trainee", "internship",
+    "fellowship", "careers", "career", "job", "jobs", "pay scale", "stipend",
+    "direct recruitment", "gate 202", "upsc", "ssc", "railway", "rrb",
+    "isro", "drdo", "barc", "bel", "bhel", "ongc", "iocl", "ntpc", "sail",
+    "gail", "psu", "banking", "ibps", "sbi", "rbi", "scientist", "executive",
+    "manager", "technician", "constable", "inspector", "mts", "grade",
+    # Hindi indicators
+    "भर्ती", "नौकरी", "रोजगार", "आवेदन", "अधिसूचना", "पदों", "पद",
+    "अंतिम तिथि", "पात्रता", "योग्यता", "वेतन", "सरकारी"
 ]
 
 # Non-job indicators to classify separately
 NON_JOB_INDICATORS = {
-    "exam_result": ["result declared", "final result", "merit list", "score card", "results out"],
-    "answer_key": ["answer key", "provisional answer key", "objection tracker"],
-    "exam_date": ["exam date", "admit card", "hall ticket", "call letter", "exam postponed"],
+    "exam_result": ["result declared", "final result", "merit list", "score card", "results out", "कट ऑफ", "परिणाम घोषित"],
+    "answer_key": ["answer key", "provisional answer key", "objection tracker", "उत्तर कुंजी"],
+    "exam_date": ["exam date", "admit card", "hall ticket", "call letter", "exam postponed", "प्रवेश पत्र"],
     "admission": ["admission open", "counseling schedule", "seat allotment", "entrance exam"],
-    "syllabus": ["syllabus pdf", "exam pattern & syllabus", "detailed syllabus"]
+    "syllabus": ["syllabus pdf", "exam pattern & syllabus", "detailed syllabus", "पाठ्यक्रम"]
 }
 
 
@@ -90,16 +99,16 @@ def extract_urls(text: str) -> List[str]:
     return list(dict.fromkeys(clean_urls))  # deduplicate preserving order
 
 
-def classify_pre_filter(text: str) -> tuple[str, bool]:
+def classify_pre_filter(text: str, urls: Optional[List[str]] = None, has_media: bool = False) -> tuple[str, bool]:
     """
     Inexpensive rule-based pre-filter.
     Returns (category, is_potential_job).
     Does NOT make the final eligibility decision.
     """
-    if not text:
+    if not text and not urls and not has_media:
         return "empty", False
 
-    text_lower = text.lower()
+    text_lower = (text or "").lower()
 
     # Check non-job indicators first
     for category, keywords in NON_JOB_INDICATORS.items():
@@ -108,7 +117,14 @@ def classify_pre_filter(text: str) -> tuple[str, bool]:
 
     # Check job indicators
     is_job = any(kw in text_lower for kw in JOB_INDICATORS)
-    category = "potential_job" if is_job else "general_or_unknown"
+    
+    # If message contains URLs or attachments in a monitored job channel, treat as potential job
+    if not is_job and (urls or has_media or len(text_lower.strip()) > 30):
+        is_job = True
+        category = "potential_job"
+    else:
+        category = "potential_job" if is_job else "general_or_unknown"
+
     return category, is_job
 
 
@@ -147,7 +163,11 @@ def parse_telethon_message(event) -> ParsedTelegramMessage:
     if is_forwarded and message.fwd_from:
         forward_from = getattr(message.fwd_from, "from_name", None) or str(getattr(message.fwd_from, "from_id", ""))
 
-    pre_filter_cat, is_job = classify_pre_filter(msg_text)
+    pre_filter_cat, is_job = classify_pre_filter(
+        msg_text,
+        urls=urls,
+        has_media=media_metadata.get("has_media", False)
+    )
 
     return ParsedTelegramMessage(
         telegram_message_id=msg_id,

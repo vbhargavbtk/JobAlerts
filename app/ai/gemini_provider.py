@@ -61,31 +61,47 @@ class GeminiProvider(AIProvider):
             }
         }
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                response = await client.post(url, json=payload)
+        import asyncio
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                    response = await client.post(url, json=payload)
 
-                if response.status_code != 200:
-                    err_msg = f"Gemini API error HTTP {response.status_code}: {response.text[:200]}"
-                    logger.warning(err_msg)
-                    return None, err_msg
+                    if response.status_code == 429 and attempt < max_retries:
+                        logger.warning(f"Gemini API hit rate limit (429). Retrying in 3s (attempt {attempt + 1}/{max_retries})...")
+                        await asyncio.sleep(3)
+                        continue
 
-                data = response.json()
-                candidates = data.get("candidates", [])
-                if not candidates:
-                    return None, "Gemini returned no response candidates"
+                    if response.status_code != 200:
+                        err_msg = f"Gemini API error HTTP {response.status_code}: {response.text[:200]}"
+                        logger.warning(err_msg)
+                        return None, err_msg
 
-                raw_text = candidates[0]["content"]["parts"][0]["text"].strip()
-                clean_json = _clean_json(raw_text)
-                parsed_dict = json.loads(clean_json)
+                    data = response.json()
+                    candidates = data.get("candidates", [])
+                    if not candidates:
+                        return None, "Gemini returned no response candidates"
 
-                schema_validated = JobExtractionSchema.model_validate(parsed_dict)
-                return schema_validated, None
+                    raw_text = candidates[0]["content"]["parts"][0]["text"].strip()
+                    clean_json = _clean_json(raw_text)
+                    parsed_data = json.loads(clean_json)
 
-        except json.JSONDecodeError as jde:
-            return None, f"Malformed JSON from Gemini: {jde}"
-        except Exception as e:
-            return None, f"Gemini call exception: {e}"
+                    if isinstance(parsed_data, list):
+                        parsed_data = parsed_data[0] if parsed_data else {}
+
+                    schema_validated = JobExtractionSchema.model_validate(parsed_data)
+                    return schema_validated, None
+
+            except json.JSONDecodeError as jde:
+                return None, f"Malformed JSON from Gemini: {jde}"
+            except Exception as e:
+                if attempt < max_retries:
+                    await asyncio.sleep(2)
+                    continue
+                return None, f"Gemini call exception: {e}"
+
+        return None, "Gemini API max retries exceeded"
 
 
 def _clean_json(text: str) -> str:
@@ -96,4 +112,23 @@ def _clean_json(text: str) -> str:
         text = text[3:]
     if text.endswith("```"):
         text = text[:-3]
-    return text.strip()
+    text = text.strip()
+    
+    # If wrapped in other text, find first { or [ and matching last } or ]
+    first_brace = text.find("{")
+    first_bracket = text.find("[")
+    
+    start_idx = -1
+    if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+        start_idx = first_brace
+        end_idx = text.rfind("}")
+    elif first_bracket != -1:
+        start_idx = first_bracket
+        end_idx = text.rfind("]")
+    else:
+        end_idx = -1
+
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        return text[start_idx:end_idx + 1].strip()
+
+    return text

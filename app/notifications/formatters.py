@@ -1,10 +1,4 @@
-"""
-Telegram Alert Notification Formatters
-Constructs rich, structured Markdown messages for:
-- 🚨 ELIGIBLE JOB
-- 🟡 POSSIBLE MATCH — VERIFY (UNCERTAIN)
-Never converts unverified claims into official fact.
-"""
+import html
 from typing import Optional
 from app.ai.schemas import JobExtractionSchema
 from app.eligibility.models import EligibilityDecision
@@ -17,48 +11,47 @@ def format_eligible_job_alert(
     content: Optional[NormalizedContent] = None
 ) -> str:
     """
-    Constructs the 🚨 ELIGIBLE JOB alert specified in Section 21 of the Master Specification.
+    Constructs the 🚨 ELIGIBLE JOB alert using clean HTML formatting.
     """
-    org = job.organization or "Government Organization"
-    post = job.post_name or "Recruitment Post"
+    org = html.escape(job.organization or "Government Organization")
+    post = html.escape(job.post_name or "Recruitment Post")
     vacancies = str(job.vacancies) if job.vacancies is not None else "Not Specified"
-    quals = ", ".join(job.qualification) if job.qualification else "Refer notification"
-    branches = ", ".join(job.accepted_branches) if job.accepted_branches else "All/Specified branches"
-    age = f"{job.age_min or 18} to {job.age_max or 'Max'} years" if job.age_max else "Refer notification"
-    exp = f"{job.experience_years_min or 0} years" if job.experience_required else "Freshers Eligible / No Experience"
-    salary = job.salary or job.pay_level or "As per Govt Rules"
-    locations = ", ".join(job.location) if job.location else "All India"
-    app_start = job.application_start or "Check official link"
-    app_end = job.application_deadline or "Check official link"
-    selection = ", ".join(job.selection_process) if job.selection_process else "Written Exam / Interview"
-    fees = ", ".join(job.application_fee) if job.application_fee else "Refer notification"
+    age = html.escape(f"{job.age_min or 18} to {job.age_max or 'Max'} years" if job.age_max else "Refer notification")
+    exp = html.escape(f"{job.experience_years_min or 0} years" if job.experience_required else "Freshers Eligible / No Experience")
+    salary = html.escape(job.salary or job.pay_level or "As per Govt Rules")
+    locations = html.escape(", ".join(job.location) if job.location else "All India")
+    app_start = html.escape(job.application_start or "Check official link")
+    app_end = html.escape(job.application_deadline or "Check official link")
+    selection = html.escape(", ".join(job.selection_process) if job.selection_process else "Written Exam / Interview")
+    fees = html.escape(", ".join(job.application_fee) if job.application_fee else "Refer notification")
 
     lines = [
-        "🚨 *ELIGIBLE GOVERNMENT JOB ALERT*",
+        "🚨 <b>ELIGIBLE GOVERNMENT JOB ALERT</b>",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        f"🏛 *Organization:* {org}",
-        f"📋 *Post:* {post}",
-        f"🔢 *Vacancies:* {vacancies}",
+        f"🏛 <b>Organization:</b> {org}",
+        f"📋 <b>Post:</b> {post}",
+        f"🔢 <b>Vacancies:</b> {vacancies}",
         "",
-        f"🎓 *Qualification:* {quals} ({branches})",
-        f"🎂 *Age Limit:* {age}",
-        f"💼 *Experience:* {exp}",
-        f"💰 *Salary / Pay Level:* {salary}",
-        f"📍 *Location:* {locations}",
+        f"💼 <b>Experience:</b> {exp}",
+        f"🎂 <b>Age Limit:</b> {age}",
+        f"💰 <b>Salary / Pay Level:</b> {salary}",
+        f"📍 <b>Location:</b> {locations}",
         "",
-        f"📅 *Application Start:* {app_start}",
-        f"⏳ *Application Deadline:* {app_end}",
+        f"📅 <b>Application Start:</b> {app_start}",
+        f"⏳ <b>Application Deadline:</b> {app_end}",
         "",
-        f"📝 *Selection Process:* {selection}",
-        f"💳 *Application Fee:* {fees}",
+        f"📝 <b>Selection Process:</b> {selection}",
+        f"💳 <b>Application Fee:</b> {fees}",
         "",
-        "🎯 *Why You Are Eligible:*",
+        "🎯 <b>Why You Are Eligible:</b>",
     ]
 
-    # Include eligibility breakdown
+    # Include eligibility breakdown (excluding qualification)
     for k, v in decision.criteria.items():
-        if v.status == "PASS":
-            lines.append(f"  • *{k.replace('_', ' ').capitalize()}:* {v.details}")
+        if v.status == "PASS" and k != "qualification":
+            clean_k = html.escape(k.replace('_', ' ').capitalize())
+            clean_det = html.escape(str(v.details))
+            lines.append(f"  • <b>{clean_k}:</b> {clean_det}")
 
     lines.append("")
 
@@ -67,16 +60,16 @@ def format_eligible_job_alert(
     apply_link = job.official_apply_url or (content.canonical_url if content else None)
 
     if pdf_link:
-        lines.append(f"📄 *Official Notification PDF:* [Download Here]({pdf_link})")
+        lines.append(f'📄 <b>Official Notification PDF:</b> <a href="{pdf_link}">Download PDF</a>')
     if apply_link:
-        lines.append(f"🔗 *Apply Online Portal:* [Click to Apply]({apply_link})")
+        lines.append(f'🔗 <b>Apply Online Portal:</b> <a href="{apply_link}">Click to Apply</a>')
 
     verif_status = content.verification_status if content else "unverified"
     source_type = content.source_type if content else "secondary"
-    lines.append(f"🛡 *Source Status:* `{source_type.upper()}` ({verif_status.upper()})")
+    lines.append(f"🛡 <b>Source Status:</b> <code>{source_type.upper()} ({verif_status.upper()})</code>")
 
     lines.append("")
-    lines.append("⚠️ *Important Note:* Verify the official notification thoroughly before applying.")
+    lines.append("⚠️ <b>Important Note:</b> Verify the official notification thoroughly before applying.")
     return "\n".join(lines)
 
 
@@ -86,30 +79,34 @@ def format_uncertain_job_alert(
     content: Optional[NormalizedContent] = None
 ) -> str:
     """
-    Constructs the 🟡 POSSIBLE MATCH — VERIFY alert specified in Section 22.
+    Constructs the 🟡 POSSIBLE MATCH — VERIFY alert using clean HTML formatting.
     """
-    org = job.organization or "Government Department"
-    post = job.post_name or "Recruitment Post"
+    org = html.escape(job.organization or "Government Department")
+    post = html.escape(job.post_name or "Recruitment Post")
 
     lines = [
-        "🟡 *POSSIBLE MATCH — VERIFY REQUIRED*",
+        "🟡 <b>POSSIBLE MATCH — VERIFY REQUIRED</b>",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        f"🏛 *Organization:* {org}",
-        f"📋 *Post:* {post}",
+        f"🏛 <b>Organization:</b> {org}",
+        f"📋 <b>Post:</b> {post}",
         "",
-        "✅ *What Matched:*",
+        "✅ <b>What Matched:</b>",
     ]
 
     for k, v in decision.criteria.items():
-        if v.status == "PASS":
-            lines.append(f"  • *{k.replace('_', ' ').capitalize()}:* {v.details}")
+        if v.status == "PASS" and k != "qualification":
+            clean_k = html.escape(k.replace('_', ' ').capitalize())
+            clean_det = html.escape(str(v.details))
+            lines.append(f"  • <b>{clean_k}:</b> {clean_det}")
 
     lines.append("")
-    lines.append("⚠️ *What Requires Manual Verification (UNKNOWN):*")
+    lines.append("⚠️ <b>What Requires Manual Verification (UNKNOWN):</b>")
 
     for k, v in decision.criteria.items():
-        if v.status == "UNKNOWN":
-            lines.append(f"  • *{k.replace('_', ' ').capitalize()}:* {v.details}")
+        if v.status == "UNKNOWN" and k != "qualification":
+            clean_k = html.escape(k.replace('_', ' ').capitalize())
+            clean_det = html.escape(str(v.details))
+            lines.append(f"  • <b>{clean_k}:</b> {clean_det}")
 
     lines.append("")
 
@@ -117,10 +114,10 @@ def format_uncertain_job_alert(
     apply_link = job.official_apply_url or (content.canonical_url if content else None)
 
     if pdf_link:
-        lines.append(f"📄 *Official Notification PDF:* [Download & Verify]({pdf_link})")
+        lines.append(f'📄 <b>Official Notification PDF:</b> <a href="{pdf_link}">Download &amp; Verify</a>')
     if apply_link:
-        lines.append(f"🔗 *Portal Link:* [Visit Portal]({apply_link})")
+        lines.append(f'🔗 <b>Portal Link:</b> <a href="{apply_link}">Visit Portal</a>')
 
     lines.append("")
-    lines.append("ℹ️ *Reason:* Key eligibility terms are ambiguous in the circular excerpt.")
+    lines.append("ℹ️ <b>Reason:</b> Key eligibility terms are ambiguous in the circular excerpt.")
     return "\n".join(lines)

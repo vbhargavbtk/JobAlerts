@@ -21,10 +21,10 @@ class AIRouter:
         if providers is not None:
             self.providers = providers
         else:
-            # Default locked order: NVIDIA NIM -> Gemini -> OpenRouter
+            # Prioritize Google Gemini Flash (fastest, most reliable) -> NVIDIA NIM -> OpenRouter
             self.providers = [
-                NvidiaNIMProvider(),
                 GeminiProvider(),
+                NvidiaNIMProvider(),
                 OpenRouterProvider()
             ]
 

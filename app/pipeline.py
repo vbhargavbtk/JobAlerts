@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
 from app.content.acquisition_manager import ContentAcquisitionManager
+from app.content.online_enricher import OnlineJobEnricher
 from app.ai.router import AIRouter
 from app.ai.schemas import JobExtractionSchema
 from app.deduplication.fingerprint import compute_job_fingerprint
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 class ProcessingPipeline:
     def __init__(self):
         self.acquisition_manager = ContentAcquisitionManager()
+        self.enricher = OnlineJobEnricher()
         self.ai_router = AIRouter()
         self.notifier = TelegramNotifier()
 
@@ -74,6 +76,10 @@ class ProcessingPipeline:
                     await repo.update_message_status(db_message_id, "NON_JOB")
                     return {"status": "NON_JOB", "message": "Content classified as non-job."}
 
+                # 2.5 ONLINE SEARCH ENRICHMENT
+                # If key details are missing, automatically search the web and merge newly discovered official facts.
+                job_data, content = await self.enricher.enrich_job_if_needed(job_data, content)
+
                 # 3. DEDUPLICATION VIA CRYPTOGRAPHIC FINGERPRINT
                 fingerprint = compute_job_fingerprint(job_data, content.canonical_url)
                 existing_job = await repo.get_job_by_fingerprint(fingerprint)
@@ -99,14 +105,14 @@ class ProcessingPipeline:
                 # Persist new Job record
                 saved_job = await repo.create_job(
                     fingerprint=fingerprint,
-                    organization=job_data.organization,
-                    post_name=job_data.post_name,
+                    organization=job_data.organization or "Unknown Organization",
+                    post_name=job_data.post_name or "Recruitment Notification",
                     notification_number=job_data.notification_number,
                     structured_data=job_data.model_dump(),
                     eligibility_status=decision.status,
                     eligibility_explanation=decision.model_dump(),
                     ai_provider_used=provider_used,
-                    confidence=job_data.confidence
+                    confidence=getattr(job_data, "confidence", 0.9)
                 )
 
                 # Attach source

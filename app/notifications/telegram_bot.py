@@ -58,9 +58,9 @@ class TelegramNotifier:
             # NOT_ELIGIBLE: do not alert
             return None
 
-        return await self._send_markdown_message(target_chat, text)
+        return await self._send_html_message(target_chat, text)
 
-    async def _send_markdown_message(self, chat_id: int, text: str) -> Optional[str]:
+    async def _send_html_message(self, chat_id: int, text: str) -> Optional[str]:
         if not self.is_configured():
             logger.info(f"[SIMULATED ALERT] (Bot not configured)\n{text}")
             return "simulated_msg_id_1001"
@@ -72,7 +72,7 @@ class TelegramNotifier:
                     json={
                         "chat_id": chat_id,
                         "text": text,
-                        "parse_mode": "Markdown",
+                        "parse_mode": "HTML",
                         "disable_web_page_preview": False
                     }
                 )
@@ -83,13 +83,15 @@ class TelegramNotifier:
                     logger.info(f"Telegram alert dispatched successfully. Message ID: {msg_id}")
                     return msg_id
                 else:
-                    logger.error(f"Failed to send Telegram alert: HTTP {resp.status_code} - {resp.text}")
-                    # If Markdown failed due to unescaped characters, try sending plain text
+                    logger.error(f"Failed to send Telegram HTML alert: HTTP {resp.status_code} - {resp.text}")
+                    # Fallback plain text if HTML had malformed tag
+                    import re
+                    plain_text = re.sub(r'<[^>]+>', '', text)
                     retry_resp = await client.post(
                         f"{self.base_url}/sendMessage",
                         json={
                             "chat_id": chat_id,
-                            "text": text.replace("*", "").replace("`", ""),
+                            "text": plain_text,
                             "disable_web_page_preview": False
                         }
                     )

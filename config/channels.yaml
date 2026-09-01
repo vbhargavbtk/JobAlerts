@@ -1,4 +1,10 @@
 channels:
+- id: govt_jobs_alert
+  name: Government Jobs Alert
+  telegram_channel_id: '@govtjobsalert'
+  type: public
+  enabled: true
+  description: Central & State Government Recruitment Updates
 - id: sarkari_job_alerts_sample
   name: Sarkari Result & Govt Jobs
   telegram_channel_id: '@sarkariresult_alerts'

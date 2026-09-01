@@ -5,26 +5,34 @@ Provides:
 - GET /api/health/detailed: Deep health inspect for DB, AI providers, and queues
 - GET /api/requirements & PUT /api/requirements: Persistent user profile editing API
 - GET /admin/requirements: Interactive Web Dashboard for requirements editing
+- GET /admin/channels: Interactive Web Dashboard for channels management & live queue
 - POST /webhook/inbound-message: n8n webhook receiver for new messages
 - POST /api/pipeline/process: Manual or orchestrated trigger for processing messages
-- Application startup/shutdown hooks for database and Telethon listener
+- POST /api/channels/fetch-recent: Trigger immediate scan of all monitored channels
+- GET /api/messages: List recent messages and processing status
+- GET /api/jobs: List extracted jobs and eligibility decisions
+- Application startup/shutdown hooks for database, Telethon listener, and scheduled sync
 """
 import os
+import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import yaml
 from fastapi import FastAPI, Depends, HTTPException, Body, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from config.settings import settings
-from app.database.connection import init_db, get_db, engine
+from app.database.connection import init_db, get_db, AsyncSessionLocal
 from app.database.repository import DatabaseRepository
+from app.database.models import ProcessedMessage, Job
 from app.eligibility.models import UserRequirementsProfile
 from app.telegram.listener import TelegramListener
 from app.telegram.channel_manager import ChannelManager
+from app.telegram.message_parser import extract_urls, ParsedTelegramMessage
 from app.pipeline import ProcessingPipeline
 from app.web.templates.requirements_editor import REQUIREMENTS_EDITOR_HTML
 from app.web.templates.channels_manager import CHANNELS_MANAGER_HTML
@@ -41,26 +49,65 @@ telegram_listener = TelegramListener()
 pipeline = ProcessingPipeline()
 
 
+async def process_inbound_message_callback(parsed: ParsedTelegramMessage, msg_uuid: str) -> None:
+    """
+    Automatic callback executed whenever a message is ingested from Telethon or Web Scraper.
+    Loads active user requirements and processes message through the intelligence pipeline.
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            repo = DatabaseRepository(session)
+            profile_data = await repo.get_user_requirements("default_user")
+            user_profile = UserRequirementsProfile.model_validate(profile_data) if profile_data else UserRequirementsProfile()
+
+        await pipeline.process_job_message(
+            db_message_id=msg_uuid,
+            channel_id=parsed.channel_id,
+            telegram_message_id=parsed.telegram_message_id,
+            message_text=parsed.message_text,
+            urls=parsed.urls,
+            user_profile=user_profile
+        )
+    except Exception as e:
+        logger.error(f"Error in automatic message processing callback for message {msg_uuid}: {e}", exc_info=True)
+
+
+async def periodic_channel_sync():
+    """Background task to periodically poll configured channels for new messages."""
+    while True:
+        await asyncio.sleep(300)  # Every 5 minutes
+        try:
+            logger.info("Executing scheduled periodic channel sync...")
+            await telegram_listener.sync_all_channels(on_message_callback=process_inbound_message_callback)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in periodic channel sync: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # STARTUP
-    logger.info("Initializing system...")
+    logger.info("Initializing Personal Job Intelligence System...")
     try:
         await init_db()
     except Exception as e:
         logger.error(f"Database initialization error on startup: {e}")
 
-    # Start Telegram MTProto listener as background task
+    # Start Telegram multi-tier listener and background sync
+    sync_task = None
     try:
-        import asyncio
-        asyncio.create_task(telegram_listener.start())
+        asyncio.create_task(telegram_listener.start(on_message_callback=process_inbound_message_callback))
+        sync_task = asyncio.create_task(periodic_channel_sync())
     except Exception as e:
-        logger.warning(f"Could not start Telegram listener: {e}")
+        logger.warning(f"Could not start Telegram listener tasks: {e}")
 
     yield
 
     # SHUTDOWN
     logger.info("Shutting down system...")
+    if sync_task:
+        sync_task.cancel()
     await telegram_listener.stop()
 
 
@@ -100,7 +147,7 @@ async def lightweight_health():
     return {
         "status": "healthy",
         "service": "personal-job-intelligence",
-        "timestamp": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT
     }
 
 
@@ -118,13 +165,14 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
     return {
         "database_connected": db_ok,
         "telegram_listener_active": telegram_listener.is_running,
+        "telegram_mtproto_connected": telegram_listener.mtproto_connected,
         "telegram_listener_configured": telegram_listener.is_configured(),
         "environment": settings.ENVIRONMENT
     }
 
 
 # ------------------------------------------------------------------------------
-# USER ELIGIBILITY REQUIREMENTS EDITING API & WEB UI (Section 12 & User Request)
+# USER ELIGIBILITY REQUIREMENTS EDITING API & WEB UI
 # ------------------------------------------------------------------------------
 @app.get("/admin/requirements", response_class=HTMLResponse, summary="Requirements Editor Web UI")
 async def requirements_editor_ui():
@@ -139,14 +187,12 @@ async def get_requirements(db: AsyncSession = Depends(get_db)):
     reqs = await repo.get_user_requirements("default_user")
 
     if not reqs:
-        # Fallback to seed YAML
         yaml_path = "config/user_requirements.yaml"
         if os.path.exists(yaml_path):
             with open(yaml_path, "r", encoding="utf-8") as f:
                 seed_data = yaml.safe_load(f)
                 await repo.save_user_requirements(seed_data, "default_user")
                 return seed_data
-        # Default Pydantic model
         default_model = UserRequirementsProfile().model_dump()
         await repo.save_user_requirements(default_model, "default_user")
         return default_model
@@ -226,8 +272,24 @@ async def delete_channel(channel_id: str):
     return {"status": "success", "message": f"Channel {channel_id} deleted."}
 
 
-from app.telegram.message_parser import extract_urls
+@app.post("/api/channels/fetch-recent", summary="Fetch Recent Messages Now")
+async def fetch_recent_messages(limit: int = 15):
+    """
+    Triggers immediate scan, parsing, and pipeline processing across all configured channels.
+    """
+    result = await telegram_listener.sync_all_channels(
+        on_message_callback=process_inbound_message_callback,
+        limit_per_channel=limit
+    )
+    return {
+        "status": "success",
+        "result": result
+    }
 
+
+# ------------------------------------------------------------------------------
+# INGESTION & PIPELINE WEBHOOKS
+# ------------------------------------------------------------------------------
 @app.post("/webhook/inbound-message", summary="Inbound Message Webhook from Listener or n8n")
 async def inbound_message_webhook(
     payload: Dict[str, Any] = Body(...),
@@ -273,3 +335,48 @@ async def inbound_message_webhook(
     )
 
     return result
+
+
+# ------------------------------------------------------------------------------
+# AUDIT & QUEUE INSPECTION ENDPOINTS
+# ------------------------------------------------------------------------------
+@app.get("/api/messages", summary="List Ingested Messages")
+async def list_messages(limit: int = 50, db: AsyncSession = Depends(get_db)):
+    """Returns recent ingested messages with processing status and timestamps."""
+    query = select(ProcessedMessage).order_by(ProcessedMessage.received_at.desc()).limit(limit)
+    res = await db.execute(query)
+    items = res.scalars().all()
+    return [
+        {
+            "id": m.id,
+            "telegram_message_id": m.telegram_message_id,
+            "channel_identifier": m.channel_identifier,
+            "message_text": m.message_text[:200] if m.message_text else "",
+            "processing_status": m.processing_status,
+            "error": m.error,
+            "job_id": m.job_id,
+            "received_at": m.received_at.isoformat() if m.received_at else None
+        }
+        for m in items
+    ]
+
+
+@app.get("/api/jobs", summary="List Extracted Jobs")
+async def list_jobs(limit: int = 50, db: AsyncSession = Depends(get_db)):
+    """Returns recent extracted jobs and eligibility decisions."""
+    query = select(Job).order_by(Job.created_at.desc()).limit(limit)
+    res = await db.execute(query)
+    jobs = res.scalars().all()
+    return [
+        {
+            "id": j.id,
+            "organization": j.organization,
+            "post_name": j.post_name,
+            "notification_number": j.notification_number,
+            "eligibility_status": j.eligibility_status,
+            "ai_provider_used": j.ai_provider_used,
+            "confidence": j.confidence,
+            "created_at": j.created_at.isoformat() if j.created_at else None
+        }
+        for j in jobs
+    ]

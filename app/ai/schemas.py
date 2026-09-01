@@ -8,30 +8,32 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class FieldEvidence(BaseModel):
-    field_name: str = Field(..., description="Name of the extracted field")
+    field_name: str = Field(default="general", description="Name of the extracted field")
     source_url: Optional[str] = Field(None, description="URL where evidence was observed")
     page_number: Optional[int] = Field(None, description="PDF page number if available")
-    supporting_excerpt: str = Field(..., description="Short verbatim excerpt from source")
+    supporting_excerpt: str = Field(default="", description="Short verbatim excerpt from source")
     extraction_method: str = Field(default="direct_text", description="e.g., pdf_text, html_text, ocr")
 
     @model_validator(mode="before")
     @classmethod
     def normalize_aliases(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"field_name": "general", "supporting_excerpt": data}
         if isinstance(data, dict):
             # Normalize field_name
-            if "field_name" not in data:
+            if "field_name" not in data or not data["field_name"]:
                 data["field_name"] = data.get("field") or data.get("name") or "general"
             # Normalize supporting_excerpt
-            if "supporting_excerpt" not in data:
+            if "supporting_excerpt" not in data or not data["supporting_excerpt"]:
                 data["supporting_excerpt"] = (
-                    data.get("excerpt") or data.get("sentence") or data.get("quote") or data.get("text") or str(data)
+                    data.get("excerpt") or data.get("sentence") or data.get("quote") or data.get("text") or str(data.get("field_name", "evidence"))
                 )
         return data
 
 
 class JobExtractionSchema(BaseModel):
     is_job: bool = Field(
-        ...,
+        default=True,
         description="True if content announces an active job/recruitment vacancy. False if exam result, answer key, admission, syllabus, or general news."
     )
     job_type: Optional[str] = Field(
@@ -143,18 +145,57 @@ class JobExtractionSchema(BaseModel):
         description="Mandatory evidence citations for each extracted field"
     )
 
-    @field_validator(
-        "qualification", "accepted_branches", "age_relaxations", "location",
-        "application_fee", "selection_process", "source_urls", "important_conditions",
-        "evidence",
-        mode="before"
-    )
+    @model_validator(mode="before")
     @classmethod
-    def coerce_list_fields(cls, v: Any) -> List[Any]:
-        if v is None:
-            return []
-        if isinstance(v, str):
-            return [v] if v.strip() else []
-        if isinstance(v, list):
-            return v
-        return [v]
+    def sanitize_input_dict(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        
+        string_list_fields = [
+            "qualification", "accepted_branches", "age_relaxations", "location",
+            "application_fee", "selection_process", "source_urls", "important_conditions"
+        ]
+        for field in string_list_fields:
+            val = data.get(field)
+            if val is None:
+                data[field] = []
+            elif isinstance(val, str):
+                data[field] = [val] if val.strip() else []
+            elif isinstance(val, list):
+                clean_items = []
+                for item in val:
+                    if isinstance(item, dict):
+                        parts = [f"{k}: {v}" for k, v in item.items() if v is not None]
+                        clean_items.append(", ".join(parts) if parts else str(item))
+                    elif item is not None:
+                        clean_items.append(str(item).strip())
+                data[field] = clean_items
+            else:
+                data[field] = [str(val)]
+
+        # Sanitize evidence list
+        ev = data.get("evidence")
+        if ev is None:
+            data["evidence"] = []
+        elif not isinstance(ev, list):
+            data["evidence"] = [ev]
+        
+        # Sanitize vacancies
+        vac = data.get("vacancies")
+        if isinstance(vac, str):
+            import re
+            digits = re.findall(r'\d+', vac)
+            if digits:
+                data["vacancies"] = int(digits[0])
+            else:
+                data["vacancies"] = None
+
+        # Sanitize confidence
+        conf = data.get("confidence")
+        if conf is not None and isinstance(conf, str):
+            try:
+                data["confidence"] = float(conf)
+            except ValueError:
+                data["confidence"] = 0.9
+
+        return data

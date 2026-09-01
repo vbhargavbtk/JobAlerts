@@ -1,0 +1,27 @@
+{
+  "include": [
+    "app",
+    "config",
+    "scripts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv"
+  ],
+  "venvPath": "c:/Users/vbhar/Jobs alerts",
+  "venv": ".venv",
+  "extraPaths": [
+    "c:/Users/vbhar/Jobs alerts",
+    "c:/Users/vbhar/Jobs alerts/.venv/Lib/site-packages"
+  ],
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Windows",
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportUndefinedVariable": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none"
+}

@@ -5,6 +5,7 @@ When original URL is broken or missing, searches DuckDuckGo / Tavily using messa
 Never treats a search result as proof without verifying it corresponds to the recruitment.
 """
 import logging
+import asyncio
 from typing import Optional, List, Dict
 import httpx
 
@@ -44,43 +45,73 @@ class SearchFallback:
             if res:
                 return res
 
-        # Fallback to DuckDuckGo search
+        # Fallback to DuckDuckGo search (HTML parser + DDGS)
         return await self._search_duckduckgo(search_query)
 
-    async def _search_tavily(self, query: str) -> Optional[NormalizedContent]:
+    async def search_raw_results(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
+        """
+        Retrieves raw search result items (title, url, snippet) using robust HTML scraping.
+        """
+        from bs4 import BeautifulSoup
+        from urllib.parse import unquote
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5"
+        }
+        url = "https://html.duckduckgo.com/html/"
+        params = {"q": query}
+
         try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(
-                    "https://api.tavily.com/search",
-                    json={
-                        "api_key": self.tavily_api_key,
-                        "query": query,
-                        "search_depth": "advanced",
-                        "include_raw_content": False,
-                        "max_results": 5
-                    }
-                )
+            async with httpx.AsyncClient(timeout=10, headers=headers, follow_redirects=True) as client:
+                resp = await client.post(url, data=params)
                 if resp.status_code == 200:
-                    data = resp.json()
-                    results = data.get("results", [])
-                    return self._select_best_result(results, query, "search_tavily")
+                    soup = BeautifulSoup(resp.text, "html.parser")
+                    results = []
+                    for r in soup.find_all("div", class_="result"):
+                        title_elem = r.find("a", class_="result__a")
+                        snippet_elem = r.find("a", class_="result__snippet")
+                        if title_elem:
+                            raw_href = title_elem.get("href", "")
+                            if "uddg=" in raw_href:
+                                clean_url = unquote(raw_href.split("uddg=")[1].split("&")[0])
+                            else:
+                                clean_url = raw_href
+                            results.append({
+                                "title": title_elem.get_text(strip=True),
+                                "url": clean_url,
+                                "content": snippet_elem.get_text(strip=True) if snippet_elem else ""
+                            })
+                            if len(results) >= max_results:
+                                break
+                    if results:
+                        return results
         except Exception as e:
-            logger.warning(f"Tavily search failed: {e}")
-        return None
+            logger.warning(f"DuckDuckGo HTML search failed: {e}")
+
+        # Fallback to DDGS library if HTML failed
+        def _sync_ddgs():
+            try:
+                from duckduckgo_search import DDGS
+                with DDGS() as ddgs:
+                    return list(ddgs.text(query, max_results=max_results))
+            except Exception:
+                return []
+
+        try:
+            ddgs_res = await asyncio.wait_for(asyncio.to_thread(_sync_ddgs), timeout=6.0)
+            return [
+                {"title": r.get("title", ""), "url": r.get("href", ""), "content": r.get("body", "")}
+                for r in ddgs_res if r.get("href")
+            ]
+        except Exception:
+            return []
 
     async def _search_duckduckgo(self, query: str) -> Optional[NormalizedContent]:
-        try:
-            from duckduckgo_search import DDGS
-            ddgs = DDGS()
-            results = list(ddgs.text(query, max_results=5))
-            if results:
-                formatted = [
-                    {"url": r.get("href"), "title": r.get("title"), "content": r.get("body")}
-                    for r in results
-                ]
-                return self._select_best_result(formatted, query, "search_duckduckgo")
-        except Exception as e:
-            logger.warning(f"DuckDuckGo search fallback failed: {e}")
+        results = await self.search_raw_results(query, max_results=5)
+        if results:
+            return self._select_best_result(results, query, "search_duckduckgo_html")
         return None
 
     def _select_best_result(
