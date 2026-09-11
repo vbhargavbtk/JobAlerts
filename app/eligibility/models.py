@@ -96,6 +96,19 @@ class UserRequirementsProfile(BaseModel):
         default_factory=lambda: ["internship", "unpaid_volunteer", "ad_hoc_short_term"]
     )
     notification_preferences: NotificationPreferences = Field(default_factory=NotificationPreferences)
+    # Extended fields for the Apple-style personal profile UI
+    date_of_birth: Optional[str] = Field(
+        default=None,
+        description="User date of birth (YYYY-MM-DD). Used to derive age automatically."
+    )
+    max_application_fee: Optional[int] = Field(
+        default=None,
+        description="Maximum application fee user is willing to pay in INR. None means Any."
+    )
+    matching_mode: str = Field(
+        default="balanced",
+        description="Matching strictness: strict | balanced | broad"
+    )
 
 
 class EligibilityCriterionResult(BaseModel):

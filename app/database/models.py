@@ -155,3 +155,17 @@ class UserRequirement(Base):
     configuration = Column(JSON, nullable=False)
     version = Column(Integer, default=1, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class UserJobStatus(Base):
+    __tablename__ = "user_job_status"
+
+    id = Column(String(64), primary_key=True, default=generate_uuid)
+    job_id = Column(String(64), ForeignKey("jobs.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    status = Column(String(32), nullable=False)  # 'plan_to_apply', 'applied'
+    applied_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    job = relationship("Job", backref="user_status_rel")
+

@@ -1,11 +1,8 @@
 """
-HTML Template for Channel Management Dashboard & Live Intelligence Queue
-Provides an interactive Web UI to:
-- View all monitored public and private Telegram channels
-- Add new channels with validation
-- Trigger immediate multi-channel message fetch / sync
-- Toggle channels enabled/disabled in real time
-- Inspect live message ingestion queue and AI extraction results
+HTML Template for Apple-Inspired Monitored Channels & Message Stream
+Clean, calm, minimalist interface with Apple Human Interface Guidelines:
+Light background (#F5F5F7), grouped white settings cards, iOS-style toggles,
+refined typography, channel controls, and live ingestion queue audit.
 """
 
 CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
@@ -13,31 +10,36 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Telegram Channels & Intelligence Queue | Govt Job AI</title>
+  <title>Channels & Ingestion | Job Alerts</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #0B0F17;
-      --bg-surface: #131B2A;
-      --bg-surface-elevated: #1A2438;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --border-focus: #3B82F6;
-      --text-primary: #F3F4F6;
-      --text-secondary: #9CA3AF;
-      --text-muted: #6B7280;
-      --accent-blue: #3B82F6;
-      --accent-blue-glow: rgba(59, 130, 246, 0.25);
-      --accent-emerald: #10B981;
-      --accent-amber: #F59E0B;
-      --accent-rose: #F43F5E;
-      --accent-purple: #8B5CF6;
-      --radius-sm: 6px;
-      --radius-md: 10px;
+      --bg-page: #F5F5F7;
+      --bg-surface: #FFFFFF;
+      --bg-surface-secondary: #F2F2F7;
+      --bg-surface-tertiary: #E5E5EA;
+      --text-primary: #1D1D1F;
+      --text-secondary: #6E6E73;
+      --text-tertiary: #86868B;
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-divider: #E5E5EA;
+      --accent-blue: #0071E3;
+      --accent-blue-hover: #0077ED;
+      --accent-blue-subtle: rgba(0, 113, 227, 0.08);
+      --status-green: #34C759;
+      --status-green-bg: #E8F5E9;
+      --status-amber: #FF9500;
+      --status-amber-bg: #FFF4E5;
+      --status-red: #FF3B30;
+      --status-red-bg: #FEECEB;
+      --radius-sm: 8px;
+      --radius-md: 12px;
       --radius-lg: 16px;
-      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --radius-full: 9999px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     * {
@@ -47,613 +49,587 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
     }
 
     body {
-      background-color: var(--bg-base);
+      background-color: var(--bg-page);
       color: var(--text-primary);
       font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.5;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      line-height: 1.5;
-      padding-bottom: 50px;
     }
 
+    /* GLOBAL APPLE HEADER */
     header {
-      background-color: rgba(19, 27, 42, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border-subtle);
       position: sticky;
       top: 0;
       z-index: 100;
-      padding: 14px 32px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+
+    .header-inner {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-badge {
-      background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-      color: #fff;
-      font-weight: 700;
-      font-size: 13px;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
-      box-shadow: 0 0 15px var(--accent-blue-glow);
-    }
-
-    .brand-title {
-      font-size: 17px;
+    .brand-logo {
+      font-size: 16px;
       font-weight: 600;
-      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      letter-spacing: -0.015em;
     }
 
-    .nav-links {
+    .nav-tabs {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: var(--bg-base);
-      padding: 4px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
+      gap: 24px;
     }
 
-    .nav-link {
-      padding: 6px 14px;
-      border-radius: var(--radius-sm);
+    .nav-tab {
       font-size: 13px;
       font-weight: 500;
+      color: var(--text-secondary);
       text-decoration: none;
-      color: var(--text-secondary);
-      transition: all 0.2s;
+      transition: color 0.15s ease;
     }
 
-    .nav-link:hover {
+    .nav-tab:hover {
       color: var(--text-primary);
     }
 
-    .nav-link.active {
-      background: var(--bg-surface-elevated);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 32px 24px;
-      width: 100%;
-    }
-
-    .hero-banner {
-      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(19, 27, 42, 0.4) 100%);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: var(--radius-lg);
-      padding: 24px 28px;
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .hero-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      color: #fff;
-    }
-
-    .hero-subtitle {
-      font-size: 13px;
-      color: var(--text-secondary);
-      max-width: 750px;
-      line-height: 1.5;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      padding: 9px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
+    .nav-tab.active {
+      color: var(--text-primary);
       font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      display: inline-flex;
+    }
+
+    .header-actions {
+      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
-    .btn-primary {
-      background: var(--accent-blue);
-      color: #fff;
-      box-shadow: 0 4px 12px var(--accent-blue-glow);
-    }
-
-    .btn-primary:hover {
-      background: #2563EB;
-    }
-
-    .btn-emerald {
-      background: var(--accent-emerald);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-    }
-
-    .btn-emerald:hover {
-      background: #059669;
-    }
-
-    .btn-secondary {
-      background: var(--bg-surface-elevated);
+    .btn-secondary-apple {
+      font-size: 13px;
+      font-weight: 500;
       color: var(--text-primary);
-      border: 1px solid var(--border-color);
+      background: var(--bg-surface-secondary);
+      border: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      transition: background 0.15s;
     }
 
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.08);
+    .btn-secondary-apple:hover {
+      background: var(--bg-surface-tertiary);
     }
 
-    .btn-danger {
-      background: rgba(244, 63, 94, 0.15);
-      color: #FDA4AF;
-      border: 1px solid rgba(244, 63, 94, 0.3);
+    .btn-primary-apple {
+      font-size: 13px;
+      font-weight: 500;
+      color: #FFFFFF;
+      background: var(--accent-blue);
+      border: none;
+      cursor: pointer;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      transition: background 0.15s;
     }
 
-    .btn-danger:hover {
-      background: rgba(244, 63, 94, 0.3);
+    .btn-primary-apple:hover {
+      background: var(--accent-blue-hover);
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+    /* MAIN CONTAINER */
+    main {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px 80px 24px;
+      flex: 1;
     }
 
-    @media (max-width: 900px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    .stat-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .stat-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface-elevated);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-
-    .stat-val {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      overflow: hidden;
+    .page-hero {
       margin-bottom: 28px;
     }
 
-    .card-header {
-      padding: 16px 22px;
-      border-bottom: 1px solid var(--border-color);
+    .page-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .page-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    .summary-inline-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: rgba(0, 0, 0, 0.03);
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      margin-top: 14px;
+    }
+
+    .summary-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+
+    /* GROUPED CARDS */
+    .stack-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      margin-top: 24px;
+    }
+
+    .section-block {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 0 4px;
     }
 
-    .card-title {
-      font-size: 15px;
+    .section-heading-text {
+      font-size: 12px;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
     }
 
-    .channel-table {
+    .btn-refresh-clean {
+      font-size: 12px;
+      color: var(--accent-blue);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .clean-table-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    /* CLEAN TABLES */
+    .apple-table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
     }
 
-    .channel-table th {
-      background: rgba(11, 15, 23, 0.5);
-      padding: 12px 20px;
-      font-size: 12px;
+    .apple-table th {
+      font-size: 11.5px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border-color);
+      letter-spacing: 0.04em;
+      padding: 12px 18px;
+      background: var(--bg-surface-secondary);
+      border-bottom: 1px solid var(--border-divider);
     }
 
-    .channel-table td {
-      padding: 14px 20px;
-      font-size: 13px;
-      border-bottom: 1px solid var(--border-color);
+    .apple-table td {
+      padding: 14px 18px;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-divider);
       vertical-align: middle;
     }
 
-    .channel-table tr:last-child td {
+    .apple-table tr:last-child td {
       border-bottom: none;
     }
 
-    .channel-table tr:hover {
-      background: rgba(255, 255, 255, 0.02);
+    .apple-table tr:hover td {
+      background: rgba(0, 0, 0, 0.015);
     }
 
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
+    .code-badge {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-surface-secondary);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .type-pill {
       font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-secondary);
+      color: var(--text-secondary);
+      text-transform: capitalize;
     }
 
-    .badge-public {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93C5FD;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+    .status-dot-sm {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
     }
 
-    .badge-private {
-      background: rgba(245, 158, 11, 0.15);
-      color: #FCD34D;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+    .dot-green { background: var(--status-green); }
+    .dot-amber { background: var(--status-amber); }
+    .dot-gray { background: var(--text-tertiary); }
+
+    .btn-delete-clean {
+      font-size: 12px;
+      color: var(--status-red);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
     }
 
-    .badge-processed, .badge-eligible {
-      background: rgba(16, 185, 129, 0.15);
-      color: #6EE7B7;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+    .btn-delete-clean:hover {
+      background: var(--status-red-bg);
     }
 
-    .badge-uncertain {
-      background: rgba(245, 158, 11, 0.15);
-      color: #FCD34D;
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .badge-extracting, .badge-pending {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93C5FD;
-      border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-
-    .badge-non_job {
-      background: rgba(107, 114, 128, 0.2);
-      color: #9CA3AF;
-      border: 1px solid rgba(107, 114, 128, 0.3);
-    }
-
-    .badge-failed, .badge-ai_review_required, .badge-not_eligible {
-      background: rgba(244, 63, 94, 0.15);
-      color: #FDA4AF;
-      border: 1px solid rgba(244, 63, 94, 0.3);
-    }
-
-    .toggle-switch {
+    /* IOS SWITCH */
+    .ios-switch {
       position: relative;
       display: inline-block;
-      width: 36px;
-      height: 20px;
+      width: 40px;
+      height: 24px;
+      flex-shrink: 0;
     }
 
-    .toggle-switch input {
+    .ios-switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
 
-    .slider {
+    .switch-slider {
       position: absolute;
       cursor: pointer;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-color: var(--bg-surface-elevated);
-      border: 1px solid var(--border-color);
-      transition: .3s;
-      border-radius: 20px;
+      background-color: #E5E5EA;
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: var(--radius-full);
     }
 
-    .slider:before {
+    .switch-slider:before {
       position: absolute;
       content: "";
-      height: 14px;
-      width: 14px;
+      height: 20px;
+      width: 20px;
       left: 2px;
       bottom: 2px;
-      background-color: var(--text-muted);
-      transition: .3s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background-color: var(--accent-emerald);
-      border-color: var(--accent-emerald);
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(16px);
       background-color: white;
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
 
-    .modal-overlay {
+    input:checked + .switch-slider {
+      background-color: var(--status-green);
+    }
+
+    input:checked + .switch-slider:before {
+      transform: translateX(16px);
+    }
+
+    /* MODAL (APPLE SHEET STYLE) */
+    .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.25);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+      opacity: 1;
     }
 
     .modal-card {
       background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 24px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
       width: 100%;
-      max-width: 480px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      max-width: 460px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text-primary);
     }
 
     .form-group {
-      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .form-label {
-      display: block;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--text-secondary);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
     }
 
-    .form-control {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 9px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      font-family: var(--font-sans);
+    .apple-input {
       width: 100%;
+      background: var(--bg-surface-secondary);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
       outline: none;
+      transition: all 0.15s;
     }
 
-    .form-control:focus {
-      border-color: var(--border-focus);
+    .apple-input:focus {
+      background: #FFFFFF;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+
+    .apple-select {
+      background: var(--bg-surface-secondary);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      outline: none;
+      cursor: pointer;
+      width: 100%;
     }
 
     .modal-actions {
       display: flex;
+      align-items: center;
       justify-content: flex-end;
       gap: 10px;
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
-    .toast {
+    /* TOAST PILL */
+    .toast-pill {
       position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: #1E293B;
-      color: #fff;
-      padding: 12px 18px;
-      border-radius: var(--radius-md);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      border-left: 4px solid var(--accent-emerald);
-      display: none;
-      align-items: center;
-      gap: 10px;
-      z-index: 1000;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(29, 29, 31, 0.9);
+      backdrop-filter: blur(10px);
+      color: #FFFFFF;
       font-size: 13px;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.2s ease;
+      z-index: 2000;
+    }
+
+    .toast-pill.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
     }
   </style>
 </head>
 <body>
+  <!-- UNIFIED NAV -->
   <header>
-    <div class="brand">
-      <span class="brand-badge">GOVT JOB AI</span>
-      <span class="brand-title">Channel Management & Live Queue</span>
-    </div>
-    <div class="nav-links">
-      <a href="/admin/requirements" class="nav-link">🎓 Eligibility Rules</a>
-      <a href="/admin/channels" class="nav-link active">📢 Channels & Live Queue</a>
+    <div class="header-inner">
+      <a href="/jobs" class="brand-logo">Job Alerts</a>
+      <nav class="nav-tabs">
+        <a href="/jobs" class="nav-tab">Jobs</a>
+        <a href="/plan-to-apply" class="nav-tab">⭐ Plan to Apply</a>
+        <a href="/applied" class="nav-tab">✓ Applied</a>
+        <a href="/admin/requirements" class="nav-tab">Profile &amp; Rules</a>
+        <a href="/admin/channels" class="nav-tab active">Channels</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn-secondary-apple" id="btn-scan" onclick="fetchRecentMessages()">⚡ Scan Channels</button>
+        <button class="btn-primary-apple" onclick="openAddModal()">+ Add Channel</button>
+      </div>
     </div>
   </header>
 
-  <main class="container">
-    <section class="hero-banner">
-      <div>
-        <h1 class="hero-title">Monitored Telegram Channels & Live Queue</h1>
-        <p class="hero-subtitle">
-          The system streams notifications automatically via Web Preview and MTProto.
-          Click <strong>Fetch Latest Messages Now</strong> to immediately pull new messages from all enabled channels into the AI intelligence pipeline.
-        </p>
-      </div>
-      <div class="btn-group">
-        <button id="btn-fetch-now" class="btn btn-emerald" onclick="fetchRecentMessages()">⚡ Fetch Latest Messages Now</button>
-        <button class="btn btn-primary" onclick="openAddModal()">+ Add Channel</button>
-      </div>
-    </section>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">📡</div>
-        <div>
-          <div class="stat-val" id="stat-total">0</div>
-          <div class="stat-label">Monitored Channels</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📨</div>
-        <div>
-          <div class="stat-val" id="stat-messages" style="color:#60A5FA;">0</div>
-          <div class="stat-label">Messages Ingested</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">💼</div>
-        <div>
-          <div class="stat-val" id="stat-jobs" style="color:#34D399;">0</div>
-          <div class="stat-label">Jobs Extracted</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🟢</div>
-        <div>
-          <div class="stat-val" id="stat-eligible" style="color:#FBBF24;">0</div>
-          <div class="stat-label">Eligible Matches</div>
-        </div>
+  <main>
+    <div class="page-hero">
+      <h1 class="page-title">Monitored Sources & Live Stream</h1>
+      <p class="page-subtitle">
+        Automated Telegram web preview and MTProto ingestion monitoring official state and central recruitment channels.
+      </p>
+      <div class="summary-inline-bar">
+        <span id="stat-total">8</span> monitored sources
+        <span class="summary-dot"></span>
+        <span id="stat-messages">0</span> messages indexed
+        <span class="summary-dot"></span>
+        <span id="stat-jobs">0</span> circulars extracted
       </div>
     </div>
 
-    <!-- Monitored Channels Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>📡 Configured Monitored Channels</span>
+    <div class="stack-sections">
+      <!-- MONITORED CHANNELS -->
+      <div class="section-block">
+        <div class="section-header-bar">
+          <div class="section-heading-text">Configured Telegram Channels</div>
+          <button class="btn-refresh-clean" onclick="loadChannels()">Refresh</button>
         </div>
-        <button class="btn btn-secondary" style="font-size:12px; padding:5px 10px;" onclick="loadChannels()">🔄 Refresh</button>
+        <div class="clean-table-card">
+          <div style="overflow-x: auto;">
+            <table class="apple-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">Active</th>
+                  <th>Channel Name</th>
+                  <th>Telegram Identifier</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="channels-table-body">
+                <tr>
+                  <td colspan="6" style="text-align:center; color:var(--text-tertiary); padding:28px;">Loading channels...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div style="overflow-x: auto;">
-        <table class="channel-table">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Channel Name</th>
-              <th>Telegram Address / ID</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th style="text-align: right;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="channels-table-body">
-            <tr>
-              <td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Loading channels...</td>
-            </tr>
-          </tbody>
-        </table>
+
+      <!-- INGESTED MESSAGES -->
+      <div class="section-block">
+        <div class="section-header-bar">
+          <div class="section-heading-text">Live Ingested Messages Queue</div>
+          <button class="btn-refresh-clean" onclick="loadMessagesQueue()">Refresh</button>
+        </div>
+        <div class="clean-table-card">
+          <div style="overflow-x: auto;">
+            <table class="apple-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Channel</th>
+                  <th>Message ID</th>
+                  <th>Excerpt</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="messages-table-body">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--text-tertiary); padding:28px;">No messages received yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXTRACTED JOBS -->
+      <div class="section-block">
+        <div class="section-header-bar">
+          <div class="section-heading-text">Discovered Recruitment Circulars</div>
+          <button class="btn-refresh-clean" onclick="loadJobsList()">Refresh</button>
+        </div>
+        <div class="clean-table-card">
+          <div style="overflow-x: auto;">
+            <table class="apple-table">
+              <thead>
+                <tr>
+                  <th>Eligibility</th>
+                  <th>Organization</th>
+                  <th>Post Name</th>
+                  <th>Advertisement</th>
+                  <th>Confidence</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-table-body">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--text-tertiary); padding:28px;">No jobs processed yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Live Ingested Messages Queue -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>📨 Recent Ingested Messages Queue</span>
-        </div>
-        <button class="btn btn-secondary" style="font-size:12px; padding:5px 10px;" onclick="loadMessagesQueue()">🔄 Refresh Queue</button>
-      </div>
-      <div style="overflow-x: auto;">
-        <table class="channel-table">
-          <thead>
-            <tr>
-              <th>Processing Status</th>
-              <th>Channel</th>
-              <th>Message ID</th>
-              <th>Message Excerpt</th>
-              <th>Received At</th>
-            </tr>
-          </thead>
-          <tbody id="messages-table-body">
-            <tr>
-              <td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">No messages received yet. Click "Fetch Latest Messages Now" above.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Discovered Jobs Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>💼 Discovered Recruitment Notifications</span>
-        </div>
-        <button class="btn btn-secondary" style="font-size:12px; padding:5px 10px;" onclick="loadJobsList()">🔄 Refresh Jobs</button>
-      </div>
-      <div style="overflow-x: auto;">
-        <table class="channel-table">
-          <thead>
-            <tr>
-              <th>Eligibility</th>
-              <th>Organization</th>
-              <th>Post Name</th>
-              <th>Advt Number</th>
-              <th>AI Provider</th>
-              <th>Confidence</th>
-            </tr>
-          </thead>
-          <tbody id="jobs-table-body">
-            <tr>
-              <td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">No jobs processed yet.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </main>
 
-  <!-- Add Channel Modal -->
-  <div id="modal-add" class="modal-overlay">
+  <!-- ADD CHANNEL MODAL -->
+  <div id="modal-add" class="modal-backdrop" onclick="handleModalBackdrop(event)">
     <div class="modal-card">
-      <h3 style="font-size:16px; font-weight:600; margin-bottom:16px;">Add Monitored Channel</h3>
+      <h3 class="modal-title">Add Monitored Channel</h3>
       
       <div class="form-group">
         <label class="form-label">Channel Display Name</label>
-        <input type="text" id="add-name" class="form-control" placeholder="e.g. Govt Jobs Alert">
+        <input type="text" id="add-name" class="apple-input" placeholder="e.g. UPSC Official Updates">
       </div>
 
       <div class="form-group">
         <label class="form-label">Telegram Address or ID</label>
-        <input type="text" id="add-address" class="form-control" placeholder="e.g. @govtjobsalert">
-        <span style="font-size:11px; color:var(--text-muted);">Use @username for public channels, or numeric ID for private groups.</span>
+        <input type="text" id="add-address" class="apple-input" placeholder="e.g. @upscnotifications">
       </div>
 
       <div class="form-group">
         <label class="form-label">Channel Type</label>
-        <select id="add-type" class="form-control">
+        <select id="add-type" class="apple-select">
           <option value="public" selected>Public Channel</option>
           <option value="private">Private Channel / Group</option>
         </select>
@@ -661,19 +637,17 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
 
       <div class="form-group">
         <label class="form-label">Description (Optional)</label>
-        <input type="text" id="add-desc" class="form-control" placeholder="e.g. Central & State Government Recruitment">
+        <input type="text" id="add-desc" class="apple-input" placeholder="e.g. Civil and Engineering Services">
       </div>
 
       <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="submitAddChannel()">Add Channel</button>
+        <button class="btn-secondary-apple" onclick="closeAddModal()">Cancel</button>
+        <button class="btn-primary-apple" onclick="submitAddChannel()">Add Channel</button>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="toast">
-    <span>✅ Done!</span>
-  </div>
+  <div class="toast-pill" id="toastPill">Operation completed</div>
 
   <script>
     let channelsData = [];
@@ -705,7 +679,7 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
       document.getElementById('stat-total').innerText = total;
 
       if (channelsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">No channels configured. Click "+ Add Channel" to start.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-tertiary); padding:28px;">No channels configured. Click "+ Add Channel" to start.</td></tr>';
         return;
       }
 
@@ -713,17 +687,17 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>
-            <label class="toggle-switch">
+            <label class="ios-switch">
               <input type="checkbox" ${ch.enabled ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this.checked)">
-              <span class="slider"></span>
+              <span class="switch-slider"></span>
             </label>
           </td>
-          <td style="font-weight:600; color:#fff;">${escapeHtml(ch.name)}</td>
-          <td><code style="font-family:var(--font-mono); color:#93C5FD; background:rgba(59,130,246,0.1); padding:2px 6px; border-radius:4px;">${escapeHtml(ch.telegram_channel_id)}</code></td>
-          <td><span class="badge badge-${ch.type}">${ch.type}</span></td>
-          <td style="color:var(--text-secondary); max-width:250px;">${escapeHtml(ch.description || '-')}</td>
+          <td style="font-weight: 500; color: var(--text-primary);">${escapeHtml(ch.name)}</td>
+          <td><span class="code-badge">${escapeHtml(ch.telegram_channel_id)}</span></td>
+          <td><span class="type-pill">${ch.type}</span></td>
+          <td style="color: var(--text-secondary); max-width: 260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(ch.description || '—')}</td>
           <td style="text-align: right;">
-            <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteChannel('${ch.id}')">Delete</button>
+            <button class="btn-delete-clean" onclick="deleteChannel('${ch.id}')">Delete</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -739,25 +713,26 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
 
         const tbody = document.getElementById('messages-table-body');
         if (msgs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">No messages received yet. Click "Fetch Latest Messages Now" above.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-tertiary); padding:24px;">No messages received yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = '';
         msgs.forEach(m => {
           const tr = document.createElement('tr');
-          const statusClass = (m.processing_status || '').toLowerCase();
+          const isProcessed = m.processing_status === 'PROCESSED';
+          const dotClass = isProcessed ? 'dot-green' : (m.processing_status === 'FAILED' ? 'dot-amber' : 'dot-gray');
           tr.innerHTML = `
-            <td><span class="badge badge-${statusClass}">${escapeHtml(m.processing_status)}</span></td>
-            <td><code style="color:#93C5FD;">${escapeHtml(m.channel_identifier || 'unknown')}</code></td>
-            <td><code>${escapeHtml(m.telegram_message_id)}</code></td>
-            <td style="color:var(--text-secondary); max-width:350px;">${escapeHtml(m.message_text || '-')}</td>
-            <td style="color:var(--text-muted); font-size:11px;">${m.received_at ? new Date(m.received_at).toLocaleTimeString() : '-'}</td>
+            <td><span class="status-dot-sm ${dotClass}"></span>${escapeHtml(m.processing_status || 'Ingested')}</td>
+            <td style="font-weight: 500;">${escapeHtml(m.channel_identifier || 'external')}</td>
+            <td><span class="code-badge">${escapeHtml(m.telegram_message_id)}</span></td>
+            <td style="color: var(--text-secondary); max-width: 320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(m.message_text || '—')}</td>
+            <td style="color: var(--text-tertiary); font-size: 12px;">${m.received_at ? new Date(m.received_at).toLocaleTimeString() : '—'}</td>
           `;
           tbody.appendChild(tr);
         });
       } catch (e) {
-        console.error('Error loading messages queue:', e);
+        console.error('Error fetching messages queue:', e);
       }
     }
 
@@ -768,102 +743,83 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
         const jobs = await res.json();
         document.getElementById('stat-jobs').innerText = jobs.length;
 
-        let eligibleCount = jobs.filter(j => j.eligibility_status === 'ELIGIBLE').length;
-        document.getElementById('stat-eligible').innerText = eligibleCount;
-
         const tbody = document.getElementById('jobs-table-body');
         if (jobs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">No jobs processed yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-tertiary); padding:24px;">No jobs processed yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = '';
         jobs.forEach(j => {
           const tr = document.createElement('tr');
-          const statusClass = (j.eligibility_status || '').toLowerCase();
+          const isEligible = j.eligibility_status === 'ELIGIBLE';
+          const dotClass = isEligible ? 'dot-green' : (j.eligibility_status === 'UNCERTAIN' ? 'dot-amber' : 'dot-gray');
           tr.innerHTML = `
-            <td><span class="badge badge-${statusClass}">${escapeHtml(j.eligibility_status)}</span></td>
-            <td style="font-weight:600; color:#fff;">${escapeHtml(j.organization || 'Unknown')}</td>
-            <td>${escapeHtml(j.post_name || '-')}</td>
-            <td><code>${escapeHtml(j.notification_number || '-')}</code></td>
-            <td><span class="badge" style="background:rgba(255,255,255,0.06);">${escapeHtml(j.ai_provider_used || 'ai')}</span></td>
-            <td>${(j.confidence * 100).toFixed(0)}%</td>
+            <td><span class="status-dot-sm ${dotClass}"></span>${escapeHtml(j.eligibility_status)}</td>
+            <td style="font-weight: 500;">${escapeHtml(j.organization || 'Govt')}</td>
+            <td style="max-width: 260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(j.post_name || '—')}</td>
+            <td><span class="code-badge">${escapeHtml(j.notification_number || '—')}</span></td>
+            <td style="color: var(--text-tertiary); font-size: 12px;">${Math.round((j.confidence || 0.9) * 100)}%</td>
           `;
           tbody.appendChild(tr);
         });
       } catch (e) {
-        console.error('Error loading jobs list:', e);
+        console.error('Error fetching jobs list:', e);
       }
     }
 
-    async function fetchRecentMessages() {
-      const btn = document.getElementById('btn-fetch-now');
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Scanning & Ingesting Channels...';
-
+    async function toggleChannel(channelId, enabled) {
       try {
-        const res = await fetch('/api/channels/fetch-recent', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-          const r = data.result || {};
-          showToast(`Synced ${r.channels_synced || 0} channels (${r.total_new_ingested || 0} new messages ingested)`);
-          await loadAllData();
-        } else {
-          alert('Error during channel sync: ' + (data.detail || JSON.stringify(data)));
-        }
-      } catch (e) {
-        alert('Failed to trigger message fetch: ' + e.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-      }
-    }
-
-    async function toggleChannel(channelId, isEnabled) {
-      try {
-        const res = await fetch(`/api/channels/${encodeURIComponent(channelId)}`, {
+        const res = await fetch(`/api/channels/${channelId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled: isEnabled })
+          body: JSON.stringify({ enabled: enabled })
         });
         if (res.ok) {
-          showToast(isEnabled ? 'Channel enabled for monitoring' : 'Channel disabled');
-          loadChannels();
+          showToast(enabled ? 'Channel enabled' : 'Channel paused');
         } else {
-          alert('Failed to update channel status.');
+          showToast('Failed to update channel');
+          loadChannels();
         }
       } catch (e) {
-        alert('Network error: ' + e.message);
+        showToast('Network error updating channel');
+        loadChannels();
       }
     }
 
     async function deleteChannel(channelId) {
-      if (!confirm('Are you sure you want to delete this channel from monitoring?')) return;
+      if (!confirm('Are you sure you want to remove this channel from monitoring?')) return;
+
       try {
-        const res = await fetch(`/api/channels/${encodeURIComponent(channelId)}`, {
-          method: 'DELETE'
-        });
+        const res = await fetch(`/api/channels/${channelId}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast('Channel removed successfully');
+          showToast('Channel removed');
           loadChannels();
         } else {
-          alert('Failed to delete channel.');
+          showToast('Failed to delete channel');
         }
       } catch (e) {
-        alert('Network error: ' + e.message);
+        showToast('Network error deleting channel');
       }
     }
 
     function openAddModal() {
-      document.getElementById('add-name').value = '';
-      document.getElementById('add-address').value = '';
-      document.getElementById('add-desc').value = '';
-      document.getElementById('modal-add').style.display = 'flex';
+      const modal = document.getElementById('modal-add');
+      modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('open'), 10);
+      document.getElementById('add-name').focus();
     }
 
     function closeAddModal() {
-      document.getElementById('modal-add').style.display = 'none';
+      const modal = document.getElementById('modal-add');
+      modal.classList.remove('open');
+      setTimeout(() => modal.style.display = 'none', 200);
+    }
+
+    function handleModalBackdrop(e) {
+      if (e.target.id === 'modal-add') {
+        closeAddModal();
+      }
     }
 
     async function submitAddChannel() {
@@ -873,54 +829,79 @@ CHANNELS_MANAGER_HTML = """<!DOCTYPE html>
       const desc = document.getElementById('add-desc').value.trim();
 
       if (!name || !address) {
-        alert('Please fill in both the Channel Name and Telegram Address.');
+        alert('Please enter both Channel Name and Telegram Identifier (@username or ID).');
         return;
       }
-
-      const payload = {
-        name: name,
-        telegram_channel_id: address,
-        type: type,
-        enabled: true,
-        description: desc
-      };
 
       try {
         const res = await fetch('/api/channels', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            name: name,
+            telegram_channel_id: address,
+            type: type,
+            description: desc,
+            enabled: true
+          })
         });
 
         if (res.ok) {
           closeAddModal();
-          showToast('Channel added and active!');
+          document.getElementById('add-name').value = '';
+          document.getElementById('add-address').value = '';
+          document.getElementById('add-desc').value = '';
+          showToast('Channel added successfully');
           loadChannels();
         } else {
           const err = await res.json();
-          alert('Error: ' + (err.detail || JSON.stringify(err)));
+          alert('Error adding channel: ' + (err.detail || JSON.stringify(err)));
         }
       } catch (e) {
         alert('Network error adding channel: ' + e.message);
       }
     }
 
+    async function fetchRecentMessages() {
+      const btn = document.getElementById('btn-scan');
+      btn.disabled = true;
+      btn.innerText = 'Scanning...';
+      showToast('Scanning monitored channels...');
+
+      try {
+        const res = await fetch('/api/channels/fetch-recent?limit=15', { method: 'POST' });
+        if (res.ok) {
+          showToast('Scan complete');
+          await loadAllData();
+        } else {
+          showToast('Scan failed');
+        }
+      } catch (e) {
+        showToast('Network error during scan');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ Scan Channels';
+      }
+    }
+
     function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.querySelector('span').innerText = '✅ ' + msg;
-      toast.style.display = 'flex';
-      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+      const toast = document.getElementById('toastPill');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => { toast.classList.remove('show'); }, 2500);
     }
 
-    function escapeHtml(text) {
-      if (!text) return '';
-      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadAllData();
-      setInterval(loadAllData, 12000); // Auto-refresh every 12s
-    });
+    window.addEventListener('DOMContentLoaded', loadAllData);
   </script>
 </body>
 </html>

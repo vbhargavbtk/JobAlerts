@@ -34,7 +34,7 @@ async def test_broken_website_fallback_to_raw_text():
     )
     assert content is not None
     assert "ISRO" in content.content_text and "Scientist" in content.content_text
-    assert content.retrieval_method in ("telegram_text", "search_duckduckgo", "search_tavily")
+    assert content.retrieval_method in ("telegram_text", "search_duckduckgo", "search_duckduckgo_html", "search_tavily")
 
 
 # 12: Malformed AI JSON handling

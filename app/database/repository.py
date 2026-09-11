@@ -15,6 +15,7 @@ from app.database.models import (
     Alert,
     Failure,
     UserRequirement,
+    UserJobStatus,
     utc_now
 )
 
@@ -277,3 +278,65 @@ class DatabaseRepository:
         await self.session.commit()
         await self.session.refresh(row)
         return row
+
+    # --------------------------------------------------------------------------
+    # USER JOB STATUS (PLAN TO APPLY & APPLIED)
+    # --------------------------------------------------------------------------
+    async def set_user_job_status(self, job_id: str, status: Optional[str]) -> Dict[str, Any]:
+        """
+        Sets user status for a job:
+        - 'plan_to_apply' -> marks as planned, applied_at=None
+        - 'applied' -> marks as applied, applied_at=now, automatically removes from plan_to_apply
+        - None or '' -> removes status (returns to normal)
+        """
+        stmt = select(UserJobStatus).where(UserJobStatus.job_id == job_id)
+        result = await self.session.execute(stmt)
+        row = result.scalar_one_or_none()
+
+        clean_status = (status or "").strip().lower()
+        if clean_status in ("plan_to_apply", "applied"):
+            now = utc_now()
+            applied_at = now if clean_status == "applied" else None
+            if row:
+                row.status = clean_status
+                row.applied_at = applied_at
+                row.updated_at = now
+            else:
+                row = UserJobStatus(
+                    job_id=job_id,
+                    status=clean_status,
+                    applied_at=applied_at,
+                    created_at=now,
+                    updated_at=now,
+                )
+                self.session.add(row)
+            await self.session.commit()
+            await self.session.refresh(row)
+            return {
+                "job_id": job_id,
+                "status": row.status,
+                "applied_at": row.applied_at.isoformat() if row.applied_at else None,
+            }
+        else:
+            if row:
+                await self.session.delete(row)
+                await self.session.commit()
+            return {
+                "job_id": job_id,
+                "status": None,
+                "applied_at": None,
+            }
+
+    async def get_all_user_job_statuses(self) -> Dict[str, Dict[str, Any]]:
+        """Returns mapping of job_id -> {status, applied_at}."""
+        stmt = select(UserJobStatus)
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
+        return {
+            r.job_id: {
+                "status": r.status,
+                "applied_at": r.applied_at.isoformat() if r.applied_at else None,
+            }
+            for r in rows
+        }
+
