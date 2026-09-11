@@ -309,6 +309,7 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       align-items: center;
       gap: 6px;
       user-select: none;
+      white-space: nowrap;
     }
 
     .filter-chip:hover {
@@ -320,6 +321,68 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       background: var(--text-primary);
       color: #FFFFFF;
       border-color: var(--text-primary);
+    }
+
+    .filter-select-pill {
+      border: 1px solid var(--border-subtle);
+      background-color: var(--bg-surface);
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 6px 28px 6px 14px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      outline: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .filter-select-pill:hover {
+      border-color: rgba(0, 0, 0, 0.22);
+      color: var(--text-primary);
+    }
+
+    .filter-select-pill.active {
+      background-color: rgba(0, 113, 227, 0.08);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .filter-row-secondary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .btn-clear-filters {
+      border: none;
+      background: transparent;
+      color: var(--status-red);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-clear-filters:hover {
+      background: var(--status-red-bg);
     }
 
     /* SECTION HEADER */
@@ -1015,26 +1078,61 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
 
       <div class="filters-bar" id="filtersBar">
-        <!-- SEGMENTED CONTROLS -->
-        <div class="segmented-control" id="statusSegments">
-          <button class="segment-btn active" data-status="ELIGIBLE" onclick="setStatusSegment('ELIGIBLE')">
-            For you <span class="count-chip" id="countEligibleChip">0</span>
-          </button>
-          <button class="segment-btn" data-status="UNCERTAIN" onclick="setStatusSegment('UNCERTAIN')">
-            Needs review <span class="count-chip" id="countReviewChip">0</span>
-          </button>
-          <button class="segment-btn" data-status="ALL" onclick="setStatusSegment('ALL')">
-            All
-          </button>
+        <!-- ROW 1: STATUS SEGMENTS & SORTING -->
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+          <!-- SEGMENTED CONTROLS -->
+          <div class="segmented-control" id="statusSegments">
+            <button class="segment-btn active" data-status="ELIGIBLE" onclick="setStatusSegment('ELIGIBLE')">
+              For you <span class="count-chip" id="countEligibleChip">0</span>
+            </button>
+            <button class="segment-btn" data-status="UNCERTAIN" onclick="setStatusSegment('UNCERTAIN')">
+              Needs review <span class="count-chip" id="countReviewChip">0</span>
+            </button>
+            <button class="segment-btn" data-status="ALL" onclick="setStatusSegment('ALL')">
+              All
+            </button>
+          </div>
+
+          <!-- SORT DROPDOWN -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="sortBySelect" style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">Sort:</label>
+            <select id="sortBySelect" class="filter-select-pill" onchange="applyFilters()">
+              <option value="newest">Newest first</option>
+              <option value="deadline">Deadline: Ending soon</option>
+              <option value="vacancies">Vacancies: High to low</option>
+            </select>
+          </div>
         </div>
 
-        <!-- SECONDARY FILTER CHIPS -->
-        <div class="secondary-filters" id="secondaryFilters">
+        <!-- ROW 2: SECONDARY FILTERS & CHIPS -->
+        <div class="filter-row-secondary" id="secondaryFilters">
+          <!-- EDUCATION LEVEL FILTER -->
+          <select id="educationFilter" class="filter-select-pill" onchange="applyFilters()" title="Filter by required qualification">
+            <option value="all">All Qualifications</option>
+            <option value="engineering">Engineering (B.Tech / B.E. / MCA)</option>
+            <option value="graduate">Graduate (Degree / B.Sc / B.Com)</option>
+            <option value="diploma">Diploma / ITI</option>
+            <option value="postgraduate">Post Graduate / Master's</option>
+            <option value="school">10th / 12th Pass</option>
+          </select>
+
+          <!-- SECONDARY FILTER CHIPS -->
           <button class="filter-chip" id="feeFilterChip" onclick="toggleFeeFilter()">
             Free to apply
           </button>
           <button class="filter-chip" id="fresherFilterChip" onclick="toggleFresherFilter()">
             Freshers
+          </button>
+          <button class="filter-chip" id="closingSoonChip" onclick="toggleClosingSoonFilter()">
+            Closing soon
+          </button>
+          <button class="filter-chip" id="bulkHiringChip" onclick="toggleBulkHiringFilter()">
+            Bulk hiring (50+)
+          </button>
+
+          <!-- QUICK RESET BUTTON -->
+          <button class="btn-clear-filters" id="btnClearFilters" style="display: none;" onclick="resetAllFilters()">
+            ✕ Clear filters
           </button>
         </div>
       </div>
@@ -1077,6 +1175,8 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
     let currentSegment = 'ELIGIBLE';
     let isFreeOnly = false;
     let isFresherOnly = false;
+    let isClosingSoon = false;
+    let isBulkHiring = false;
 
     function starIconSvg(filled) {
       if (filled) {
@@ -1214,6 +1314,18 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       applyFilters();
     }
 
+    function toggleClosingSoonFilter() {
+      isClosingSoon = !isClosingSoon;
+      document.getElementById('closingSoonChip')?.classList.toggle('active', isClosingSoon);
+      applyFilters();
+    }
+
+    function toggleBulkHiringFilter() {
+      isBulkHiring = !isBulkHiring;
+      document.getElementById('bulkHiringChip')?.classList.toggle('active', isBulkHiring);
+      applyFilters();
+    }
+
     async function togglePlanToApply(jobId, event) {
       if (event) event.stopPropagation();
       const job = allJobs.find(j => j.id === jobId);
@@ -1310,7 +1422,12 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     function applyFilters() {
-      const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+      const eduVal = document.getElementById('educationFilter')?.value || 'all';
+      const sortVal = document.getElementById('sortBySelect')?.value || 'newest';
+
+      const eduSelect = document.getElementById('educationFilter');
+      if (eduSelect) eduSelect.classList.toggle('active', eduVal !== 'all');
 
       // Heading title
       if (currentView === 'plan_to_apply') {
@@ -1344,6 +1461,44 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
             const isFresher = sd.experience_required === false || sd.experience_years_min === 0;
             if (!isFresher) return false;
           }
+          if (isClosingSoon) {
+            const dl = job.structured_data?.application_deadline;
+            if (!dl) return false;
+            try {
+              const d = new Date(dl);
+              const now = new Date();
+              const diffDays = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+              if (diffDays < 0 || diffDays > 14) return false;
+            } catch {
+              return false;
+            }
+          }
+          if (isBulkHiring) {
+            const vac = job.structured_data?.vacancies;
+            if (!vac) return false;
+            const match = String(vac).match(/\d+/);
+            if (!match || parseInt(match[0], 10) < 50) return false;
+          }
+          if (eduVal !== 'all') {
+            const quals = (job.structured_data?.qualification || []).map(q => q.toLowerCase());
+            const text = quals.join(' ');
+            if (eduVal === 'engineering') {
+              const ok = ['b.tech', 'b.e', 'btech', 'engineering degree', 'degree in engineering', 'bca', 'mca', 'cse', 'civil', 'mechanical'].some(k => text.includes(k));
+              if (!ok) return false;
+            } else if (eduVal === 'diploma') {
+              const ok = ['diploma', 'polytechnic', 'iti', 'gnm', 'trade certificate', 'apprenticeship'].some(k => text.includes(k));
+              if (!ok) return false;
+            } else if (eduVal === 'graduate') {
+              const ok = ['graduate', 'bachelor', 'degree', 'b.sc', 'b.com', 'bba', 'b.a', 'graduation'].some(k => text.includes(k));
+              if (!ok) return false;
+            } else if (eduVal === 'postgraduate') {
+              const ok = ['master', 'm.sc', 'm.com', 'm.tech', 'mba', 'm.d', 'phd', 'post-graduate', 'postgraduate', 'pg degree'].some(k => text.includes(k));
+              if (!ok) return false;
+            } else if (eduVal === 'school') {
+              const ok = ['10th', '12th', 'matric', '10+2', 'intermediate', '8th', '5th'].some(k => text.includes(k));
+              if (!ok) return false;
+            }
+          }
         }
 
         // Query search
@@ -1360,6 +1515,34 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
 
         return true;
       });
+
+      // Sorting
+      if (sortVal === 'deadline') {
+        filtered.sort((a, b) => {
+          const da = a.structured_data?.application_deadline ? new Date(a.structured_data.application_deadline).getTime() : Infinity;
+          const db = b.structured_data?.application_deadline ? new Date(b.structured_data.application_deadline).getTime() : Infinity;
+          return da - db;
+        });
+      } else if (sortVal === 'vacancies') {
+        filtered.sort((a, b) => {
+          const va = parseInt((String(a.structured_data?.vacancies || '').match(/\d+/) || [0])[0], 10);
+          const vb = parseInt((String(b.structured_data?.vacancies || '').match(/\d+/) || [0])[0], 10);
+          return vb - va;
+        });
+      } else {
+        filtered.sort((a, b) => {
+          const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return tb - ta;
+        });
+      }
+
+      // Show or hide clear button
+      const hasActive = isFreeOnly || isFresherOnly || isClosingSoon || isBulkHiring || (eduVal !== 'all') || query || (currentSegment !== 'ELIGIBLE');
+      const clearBtn = document.getElementById('btnClearFilters');
+      if (clearBtn) {
+        clearBtn.style.display = hasActive ? 'inline-flex' : 'none';
+      }
 
       renderJobList(filtered);
     }
@@ -1686,14 +1869,24 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     function resetAllFilters() {
-      document.getElementById('searchInput').value = '';
+      const searchInp = document.getElementById('searchInput');
+      if (searchInp) searchInp.value = '';
       setStatusSegment('ELIGIBLE');
       isFreeOnly = false;
       isFresherOnly = false;
-      const feeChip = document.getElementById('feeFilterChip');
-      if (feeChip) feeChip.classList.remove('active');
-      const frChip = document.getElementById('fresherFilterChip');
-      if (frChip) frChip.classList.remove('active');
+      isClosingSoon = false;
+      isBulkHiring = false;
+      document.getElementById('feeFilterChip')?.classList.remove('active');
+      document.getElementById('fresherFilterChip')?.classList.remove('active');
+      document.getElementById('closingSoonChip')?.classList.remove('active');
+      document.getElementById('bulkHiringChip')?.classList.remove('active');
+      const eduSelect = document.getElementById('educationFilter');
+      if (eduSelect) {
+        eduSelect.value = 'all';
+        eduSelect.classList.remove('active');
+      }
+      const sortSelect = document.getElementById('sortBySelect');
+      if (sortSelect) sortSelect.value = 'newest';
       applyFilters();
     }
 
