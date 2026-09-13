@@ -96,3 +96,12 @@ class TestFeeParsingRealWorld:
     def test_1000_comma_format(self):
         r = check_fee_status(["₹1,000"])
         assert r["has_fee"] is True
+        assert r["amount"] == 1000
+
+    def test_fee_numeric_amounts(self):
+        assert check_fee_status(["Rs. 250/-"])["amount"] == 250
+        assert check_fee_status(["Application fee: ₹1,500"])["amount"] == 1500
+        assert check_fee_status(["No fee"])["amount"] == 0
+        assert check_fee_status([])["amount"] is None
+        assert check_fee_status(["Fee details unavailable"])["amount"] is None
+

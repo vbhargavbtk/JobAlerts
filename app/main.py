@@ -450,7 +450,8 @@ def check_fee_status(fee_list: list) -> dict:
         return {
             "has_fee": False,
             "is_free": False,
-            "label": "Fee not stated"
+            "label": "Fee not stated",
+            "amount": None
         }
 
     fee_text = " ".join(str(f) for f in fee_list).lower()
@@ -502,10 +503,17 @@ def check_fee_status(fee_list: list) -> dict:
     # If ANY non-zero fee was found, is_free must be False — category exemptions don't count
     final_is_free = is_explicitly_free and not has_paid
 
+    fee_amount = None
+    if final_is_free:
+        fee_amount = 0
+    elif has_paid:
+        fee_amount = min(a for a in amounts if a > 0)
+
     return {
         "has_fee": has_paid,
         "is_free": final_is_free,
         "label": label,
+        "amount": fee_amount
     }
 
 
@@ -655,6 +663,7 @@ async def list_jobs(
             "is_free": fee_info["is_free"],
             "has_fee": fee_info["has_fee"],
             "fee_label": fee_info["label"],
+            "fee_amount": fee_info.get("amount"),
             "short_description": generate_short_description(j),
             "user_status": ujs["status"] if ujs else None,
             "applied_at": ujs["applied_at"] if ujs else None,
@@ -733,6 +742,7 @@ async def get_job_detail(job_id: str, db: AsyncSession = Depends(get_db)):
         "is_free": fee_info["is_free"],
         "has_fee": fee_info["has_fee"],
         "fee_label": fee_info["label"],
+        "fee_amount": fee_info.get("amount"),
         "short_description": generate_short_description(job),
         "user_status": ujs["status"] if ujs else None,
         "applied_at": ujs["applied_at"] if ujs else None,

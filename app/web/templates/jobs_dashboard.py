@@ -366,6 +366,92 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       margin-top: 4px;
     }
 
+    /* FEE SLIDER FILTER */
+    .fee-slider-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 4px 14px 4px 12px;
+      font-size: 13px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      transition: all 0.15s ease;
+      height: 33px;
+      user-select: none;
+    }
+
+    .fee-slider-container:hover {
+      border-color: rgba(0, 0, 0, 0.22);
+    }
+
+    .fee-slider-container.active {
+      border-color: var(--accent-blue);
+      background: rgba(0, 113, 227, 0.05);
+    }
+
+    .fee-slider-label-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .fee-slider-display {
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 65px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .fee-slider-container.active .fee-slider-display {
+      color: var(--accent-blue);
+    }
+
+    .apple-range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 95px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-surface-tertiary);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .apple-range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 1.5px solid var(--accent-blue);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .apple-range-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+      box-shadow: 0 2px 6px rgba(0, 113, 227, 0.35);
+    }
+
+    .apple-range-slider::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 1.5px solid var(--accent-blue);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+    }
+
     .btn-clear-filters {
       border: none;
       background: transparent;
@@ -1266,6 +1352,25 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
           <button class="filter-chip" id="feeFilterChip" onclick="toggleFeeFilter()">
             Free to apply
           </button>
+
+          <!-- MAX FEE SLIDER FILTER -->
+          <div class="fee-slider-container" id="feeSliderContainer" title="Filter by maximum application fee">
+            <div class="fee-slider-label-group">
+              <span>Max Fee:</span>
+              <span class="fee-slider-display" id="feeSliderDisplay">Any</span>
+            </div>
+            <input 
+              type="range" 
+              id="feeRangeSlider" 
+              class="apple-range-slider" 
+              min="0" 
+              max="2000" 
+              step="50" 
+              value="2000" 
+              oninput="onFeeSliderChange(this.value)"
+              aria-label="Filter by maximum application fee"
+            />
+          </div>
           <button class="filter-chip" id="fresherFilterChip" onclick="toggleFresherFilter()">
             Freshers
           </button>
@@ -1340,6 +1445,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
     let currentView = 'jobs'; // 'jobs' | 'plan_to_apply' | 'applied'
     let currentSegment = 'ELIGIBLE';
     let isFreeOnly = false;
+    let maxFeeLimit = 2000;
     let isFresherOnly = false;
     let isClosingSoon = false;
     let isBulkHiring = false;
@@ -1472,10 +1578,77 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       applyFilters();
     }
 
+    function getJobFeeAmount(job) {
+      if (typeof job.fee_amount === 'number') {
+        return job.fee_amount;
+      }
+      if (job.is_free) return 0;
+      const sd = job.structured_data || {};
+      const feeList = sd.application_fee || [];
+      if (!feeList || feeList.length === 0) return null;
+      const text = feeList.join(' ').toLowerCase();
+
+      if (/\b(?:nil|free|no fee|waived|rs\.?\s*0|₹\s*0)\b/.test(text)) {
+        return 0;
+      }
+
+      const matches = [];
+      const regexes = [
+        /(?:rs\.?\s*|₹\s*|inr\s*)(\d[\d,]*)/g,
+        /(\d[\d,]*)\s*\/-/g,
+        /(?:fee\s*[=:]\s*)(\d[\d,]*)/g
+      ];
+      for (const re of regexes) {
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          try {
+            matches.push(parseInt(m[1].replace(/,/g, ''), 10));
+          } catch {}
+        }
+      }
+      if (matches.length > 0) {
+        const positive = matches.filter(a => a > 0);
+        return positive.length > 0 ? Math.min(...positive) : 0;
+      }
+      return null;
+    }
+
+    function onFeeSliderChange(val) {
+      maxFeeLimit = parseInt(val, 10);
+      const display = document.getElementById('feeSliderDisplay');
+      const container = document.getElementById('feeSliderContainer');
+      const feeChip = document.getElementById('feeFilterChip');
+
+      if (maxFeeLimit >= 2000) {
+        if (display) display.textContent = 'Any';
+        if (container) container.classList.remove('active');
+        isFreeOnly = false;
+        if (feeChip) feeChip.classList.remove('active');
+      } else if (maxFeeLimit === 0) {
+        if (display) display.textContent = '₹0 (Free)';
+        if (container) container.classList.add('active');
+        isFreeOnly = true;
+        if (feeChip) feeChip.classList.add('active');
+      } else {
+        if (display) display.textContent = `≤ ₹${maxFeeLimit.toLocaleString()}`;
+        if (container) container.classList.add('active');
+        isFreeOnly = false;
+        if (feeChip) feeChip.classList.remove('active');
+      }
+
+      applyFilters();
+    }
+
     function toggleFeeFilter() {
       isFreeOnly = !isFreeOnly;
-      document.getElementById('feeFilterChip').classList.toggle('active', isFreeOnly);
-      applyFilters();
+      const slider = document.getElementById('feeRangeSlider');
+      if (isFreeOnly) {
+        if (slider) slider.value = 0;
+        onFeeSliderChange(0);
+      } else {
+        if (slider) slider.value = 2000;
+        onFeeSliderChange(2000);
+      }
     }
 
     function toggleFresherFilter() {
@@ -1623,7 +1796,16 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
           if (currentSegment !== 'ALL' && job.eligibility_status !== currentSegment) {
             return false;
           }
-          if (isFreeOnly && !job.is_free) {
+          if (maxFeeLimit < 2000) {
+            if (maxFeeLimit === 0) {
+              if (!job.is_free) return false;
+            } else {
+              const amount = getJobFeeAmount(job);
+              if (amount !== null && amount > maxFeeLimit) {
+                return false;
+              }
+            }
+          } else if (isFreeOnly && !job.is_free) {
             return false;
           }
           if (isFresherOnly) {
@@ -1708,7 +1890,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       }
 
       // Show or hide clear button
-      const hasActive = isFreeOnly || isFresherOnly || isClosingSoon || isBulkHiring || (eduVal !== 'all') || query || (currentSegment !== 'ELIGIBLE');
+      const hasActive = (maxFeeLimit < 2000) || isFreeOnly || isFresherOnly || isClosingSoon || isBulkHiring || (eduVal !== 'all') || query || (currentSegment !== 'ELIGIBLE');
       const clearBtn = document.getElementById('btnClearFilters');
       if (clearBtn) {
         clearBtn.style.display = hasActive ? 'inline-flex' : 'none';
@@ -1805,6 +1987,10 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         let feeBadge = '';
         if (job.is_free) {
           feeBadge = `<span class="fee-pill fee-free">No application fee</span>`;
+        } else if (job.fee_label && job.fee_label !== 'Fee not stated' && job.fee_label !== 'Fee details unclear') {
+          feeBadge = `<span class="fee-pill">${escapeHtml(job.fee_label)}</span>`;
+        } else if (job.fee_amount) {
+          feeBadge = `<span class="fee-pill">Fee: ₹${job.fee_amount.toLocaleString()}</span>`;
         } else if (sd.application_fee && sd.application_fee.length > 0) {
           feeBadge = `<span class="fee-pill">Fee required</span>`;
         }
@@ -2067,6 +2253,12 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       const searchInp = document.getElementById('searchInput');
       if (searchInp) searchInp.value = '';
       setStatusSegment('ELIGIBLE');
+      maxFeeLimit = 2000;
+      const feeSlider = document.getElementById('feeRangeSlider');
+      if (feeSlider) feeSlider.value = 2000;
+      const feeDisplay = document.getElementById('feeSliderDisplay');
+      if (feeDisplay) feeDisplay.textContent = 'Any';
+      document.getElementById('feeSliderContainer')?.classList.remove('active');
       isFreeOnly = false;
       isFresherOnly = false;
       isClosingSoon = false;
