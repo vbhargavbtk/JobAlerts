@@ -4,7 +4,7 @@ Clean, calm, minimalist interface with progressive disclosure, light aesthetic (
 SF Pro typography, segmented controls, grouped cards, and slide-over details sheet.
 """
 
-JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
+JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -643,6 +643,16 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       background: rgba(52, 199, 89, 0.18);
     }
 
+    .btn-delete {
+      color: var(--text-tertiary);
+    }
+
+    .btn-delete:hover {
+      background: var(--status-red-bg);
+      color: var(--status-red);
+      border-color: rgba(215, 0, 21, 0.2);
+    }
+
     .applied-date-badge {
       font-size: 11.5px;
       font-weight: 500;
@@ -695,6 +705,17 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
       color: #248A3D;
       border-color: rgba(52, 199, 89, 0.3);
       font-weight: 600;
+    }
+
+    .btn-sheet-toggle.btn-sheet-delete {
+      color: var(--status-red);
+      border-color: rgba(215, 0, 21, 0.25);
+      background: var(--status-red-bg);
+    }
+
+    .btn-sheet-toggle.btn-sheet-delete:hover {
+      background: #FDDCDA;
+      color: #B20010;
     }
 
     /* SLIDE-OVER SHEET (APPLE STYLE) */
@@ -1030,6 +1051,131 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
         max-width: 100%;
       }
     }
+
+    .btn-clear-eligible {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--status-red);
+      background: var(--status-red-bg);
+      border: 1px solid rgba(215, 0, 21, 0.2);
+      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-clear-eligible:hover {
+      background: #FDDCDA;
+      color: #B20010;
+    }
+
+    /* APPLE-STYLE CONFIRMATION MODAL */
+    .confirm-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .confirm-modal-overlay.open {
+      opacity: 1;
+    }
+
+    .confirm-modal-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-xl);
+      max-width: 400px;
+      width: 100%;
+      padding: 28px 24px 20px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+      text-align: center;
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .confirm-modal-overlay.open .confirm-modal-card {
+      transform: scale(1);
+    }
+
+    .confirm-modal-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--status-red-bg);
+      color: var(--status-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px auto;
+    }
+
+    .confirm-modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .confirm-modal-desc {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .confirm-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-modal-cancel {
+      flex: 1;
+      padding: 9px 16px;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-divider);
+      background: var(--bg-surface-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-modal-cancel:hover {
+      background: var(--bg-surface-tertiary);
+    }
+
+    .btn-modal-confirm-delete {
+      flex: 1;
+      padding: 9px 16px;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--status-red);
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-modal-confirm-delete:hover {
+      background: #B20010;
+    }
   </style>
 </head>
 <body>
@@ -1140,7 +1286,12 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
 
     <!-- LIST HEADER -->
     <div class="section-header">
-      <div class="section-title" id="sectionTitleHeading">For you</div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="section-title" id="sectionTitleHeading">For you</div>
+        <button id="btnClearEligible" class="btn-clear-eligible" style="display: none;" onclick="confirmClearEligible()">
+          Clear all eligible
+        </button>
+      </div>
       <div class="section-count" id="jobsCountSummary">0 opportunities</div>
     </div>
 
@@ -1169,6 +1320,21 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
   <!-- SUBTLE TOAST PILL -->
   <div class="toast-pill" id="toastPill"></div>
 
+  <!-- APPLE-STYLE CONFIRMATION MODAL -->
+  <div class="confirm-modal-overlay" id="confirmModalOverlay" onclick="handleConfirmBackdrop(event)">
+    <div class="confirm-modal-card">
+      <div class="confirm-modal-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      </div>
+      <h3 class="confirm-modal-title" id="confirmModalTitle">Delete Opportunity?</h3>
+      <p class="confirm-modal-desc" id="confirmModalDesc">Are you sure you want to delete this opportunity? This action cannot be undone.</p>
+      <div class="confirm-modal-actions">
+        <button class="btn-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn-modal-confirm-delete" id="confirmModalActionBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let allJobs = [];
     let currentView = 'jobs'; // 'jobs' | 'plan_to_apply' | 'applied'
@@ -1177,6 +1343,10 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
     let isFresherOnly = false;
     let isClosingSoon = false;
     let isBulkHiring = false;
+
+    function trashIconSvg() {
+      return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+    }
 
     function starIconSvg(filled) {
       if (filled) {
@@ -1544,6 +1714,14 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
         clearBtn.style.display = hasActive ? 'inline-flex' : 'none';
       }
 
+      // Show or hide "Clear all eligible" button
+      const clearEligibleBtn = document.getElementById('btnClearEligible');
+      if (clearEligibleBtn) {
+        const eligibleCount = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE').length;
+        const showClearEligible = (currentView === 'jobs' && currentSegment === 'ELIGIBLE' && eligibleCount > 0);
+        clearEligibleBtn.style.display = showClearEligible ? 'inline-flex' : 'none';
+      }
+
       renderJobList(filtered);
     }
 
@@ -1677,6 +1855,15 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
                   ${checkCircleSvg(isApplied)}
                 </button>
 
+                <button 
+                  class="btn-icon-action btn-delete" 
+                  onclick="confirmDeleteJob('${job.id}', event)" 
+                  title="Delete opportunity"
+                  aria-label="Delete opportunity"
+                >
+                  ${trashIconSvg()}
+                </button>
+
                 <button class="btn-details" onclick="openJobSheet('${job.id}'); event.stopPropagation();">
                   Details →
                 </button>
@@ -1775,6 +1962,14 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
             >
               ${checkCircleSvg(isApplied)}
               <span>${isApplied ? 'Applied' : 'Mark as Applied'}</span>
+            </button>
+            <button 
+              class="btn-sheet-toggle btn-sheet-delete" 
+              onclick="confirmDeleteJob('${job.id}', event)"
+              title="Delete opportunity"
+            >
+              ${trashIconSvg()}
+              <span>Delete</span>
             </button>
           </div>
 
@@ -1916,6 +2111,134 @@ JOBS_DASHBOARD_HTML = """<!DOCTYPE html>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
+
+    let pendingDeleteJobId = null;
+
+    function confirmDeleteJob(jobId, event) {
+      if (event) event.stopPropagation();
+      const job = allJobs.find(j => j.id === jobId);
+      const postName = job ? (job.post_name || 'this opportunity') : 'this opportunity';
+      
+      pendingDeleteJobId = jobId;
+
+      document.getElementById('confirmModalTitle').textContent = 'Delete Opportunity?';
+      document.getElementById('confirmModalDesc').textContent = `Are you sure you want to delete "${escapeHtml(postName)}"? This opportunity will be permanently removed.`;
+      
+      const actionBtn = document.getElementById('confirmModalActionBtn');
+      actionBtn.textContent = 'Delete';
+      actionBtn.onclick = executeDeleteJob;
+
+      const overlay = document.getElementById('confirmModalOverlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.classList.add('open'), 10);
+    }
+
+    function confirmClearEligible() {
+      const eligibleCount = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE').length;
+      if (eligibleCount === 0) return;
+
+      pendingDeleteJobId = null;
+
+      document.getElementById('confirmModalTitle').textContent = 'Clear All Eligible Opportunities?';
+      document.getElementById('confirmModalDesc').textContent = `Are you sure you want to permanently delete all ${eligibleCount} eligible opportunities? This action cannot be undone.`;
+
+      const actionBtn = document.getElementById('confirmModalActionBtn');
+      actionBtn.textContent = `Delete ${eligibleCount} Jobs`;
+      actionBtn.onclick = executeClearEligible;
+
+      const overlay = document.getElementById('confirmModalOverlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.classList.add('open'), 10);
+    }
+
+    function closeConfirmModal() {
+      const overlay = document.getElementById('confirmModalOverlay');
+      overlay.classList.remove('open');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        pendingDeleteJobId = null;
+      }, 200);
+    }
+
+    function handleConfirmBackdrop(e) {
+      if (e.target.id === 'confirmModalOverlay') {
+        closeConfirmModal();
+      }
+    }
+
+    async function executeDeleteJob() {
+      const jobId = pendingDeleteJobId;
+      if (!jobId) return;
+
+      closeConfirmModal();
+      closeSheet();
+
+      const idx = allJobs.findIndex(j => j.id === jobId);
+      if (idx === -1) return;
+      const removedJob = allJobs[idx];
+
+      // Optimistic UI update
+      allJobs.splice(idx, 1);
+      updateTopMetrics();
+      applyFilters();
+      showToast('Opportunity deleted');
+
+      try {
+        const res = await fetch(`/api/jobs/${jobId}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          throw new Error('Server returned ' + res.status);
+        }
+      } catch (err) {
+        console.error(err);
+        // Rollback
+        allJobs.splice(idx, 0, removedJob);
+        updateTopMetrics();
+        applyFilters();
+        showToast('Failed to delete opportunity: ' + err.message);
+      }
+    }
+
+    async function executeClearEligible() {
+      closeConfirmModal();
+      closeSheet();
+
+      const backupJobs = [...allJobs];
+      const eligibleCount = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE').length;
+
+      // Optimistic UI update
+      allJobs = allJobs.filter(j => j.eligibility_status !== 'ELIGIBLE');
+      updateTopMetrics();
+      applyFilters();
+      showToast(`Deleted ${eligibleCount} eligible opportunities`);
+
+      try {
+        const res = await fetch('/api/jobs?status=ELIGIBLE', {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          throw new Error('Server returned ' + res.status);
+        }
+      } catch (err) {
+        console.error(err);
+        allJobs = backupJobs;
+        updateTopMetrics();
+        applyFilters();
+        showToast('Failed to clear eligible opportunities: ' + err.message);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('confirmModalOverlay');
+        if (modal && modal.classList.contains('open')) {
+          closeConfirmModal();
+        } else {
+          closeSheet();
+        }
+      }
+    });
 
     window.addEventListener('popstate', () => {
       currentView = detectView();

@@ -738,3 +738,31 @@ async def get_job_detail(job_id: str, db: AsyncSession = Depends(get_db)):
         "applied_at": ujs["applied_at"] if ujs else None,
         "message": message_info
     }
+
+
+@app.delete("/api/jobs/{job_id}", summary="Delete Extracted Job")
+async def delete_job(job_id: str, db: AsyncSession = Depends(get_db)):
+    """Deletes a single job and cleans up associated sources, alerts, and statuses."""
+    repo = DatabaseRepository(db)
+    success = await repo.delete_job(job_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Job not found")
+    logger.info(f"Job deleted: {job_id}")
+    return {"status": "success", "message": f"Job {job_id} deleted successfully."}
+
+
+@app.delete("/api/jobs", summary="Delete Jobs by Status")
+async def delete_jobs_by_status(
+    status: str = "ELIGIBLE",
+    db: AsyncSession = Depends(get_db)
+):
+    """Deletes all jobs matching the given eligibility status (defaults to ELIGIBLE)."""
+    repo = DatabaseRepository(db)
+    count = await repo.delete_jobs_by_status(status)
+    logger.info(f"Deleted {count} jobs with status {status}")
+    return {
+        "status": "success",
+        "deleted_count": count,
+        "message": f"Successfully deleted {count} {status.lower()} opportunities."
+    }
+

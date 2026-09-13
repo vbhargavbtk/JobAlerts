@@ -5,7 +5,7 @@ Provides clean CRUD operations across the 7 logical tables.
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
-from sqlalchemy import select, update, and_
+from sqlalchemy import select, update, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models import (
     Channel,
@@ -157,6 +157,49 @@ class DatabaseRepository:
         stmt = select(Job).where(Job.id == job_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def delete_job(self, job_id: str) -> bool:
+        """Deletes a job and safely removes or clears all foreign key dependencies."""
+        stmt = select(Job).where(Job.id == job_id)
+        result = await self.session.execute(stmt)
+        job = result.scalar_one_or_none()
+        if not job:
+            return False
+
+        # Clear references in processed_messages
+        await self.session.execute(
+            update(ProcessedMessage)
+            .where(ProcessedMessage.job_id == job_id)
+            .values(job_id=None)
+        )
+        # Delete dependent rows explicitly
+        await self.session.execute(delete(UserJobStatus).where(UserJobStatus.job_id == job_id))
+        await self.session.execute(delete(Source).where(Source.job_id == job_id))
+        await self.session.execute(delete(Alert).where(Alert.job_id == job_id))
+        # Delete job
+        await self.session.execute(delete(Job).where(Job.id == job_id))
+        await self.session.commit()
+        return True
+
+    async def delete_jobs_by_status(self, status: str = "ELIGIBLE") -> int:
+        """Deletes all jobs matching an eligibility status (e.g. ELIGIBLE)."""
+        stmt = select(Job.id).where(Job.eligibility_status == status.upper())
+        result = await self.session.execute(stmt)
+        job_ids = list(result.scalars().all())
+        if not job_ids:
+            return 0
+
+        await self.session.execute(
+            update(ProcessedMessage)
+            .where(ProcessedMessage.job_id.in_(job_ids))
+            .values(job_id=None)
+        )
+        await self.session.execute(delete(UserJobStatus).where(UserJobStatus.job_id.in_(job_ids)))
+        await self.session.execute(delete(Source).where(Source.job_id.in_(job_ids)))
+        await self.session.execute(delete(Alert).where(Alert.job_id.in_(job_ids)))
+        await self.session.execute(delete(Job).where(Job.id.in_(job_ids)))
+        await self.session.commit()
+        return len(job_ids)
 
     # --------------------------------------------------------------------------
     # SOURCES
