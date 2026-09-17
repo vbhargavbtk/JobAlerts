@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from app.content.acquisition_manager import ContentAcquisitionManager
 from app.content.online_enricher import OnlineJobEnricher
+from app.content.message_fusion import fuse_message_text_if_needed
 from app.ai.router import AIRouter
 from app.ai.schemas import JobExtractionSchema
 from app.deduplication.fingerprint import compute_job_fingerprint
@@ -70,6 +71,9 @@ class ProcessingPipeline:
                     await repo.update_message_status(db_message_id, "AI_REVIEW_REQUIRED", error=ai_err)
                     await repo.log_failure(db_message_id, "ai_extraction", str(ai_err), "ai_failure")
                     return {"status": "AI_REVIEW_REQUIRED", "error": ai_err}
+
+                # 2.1 FUSE TELEGRAM MESSAGE INTELLIGENCE (Fallback for omitted fields)
+                job_data = fuse_message_text_if_needed(job_data, message_text)
 
                 # If content is classified as non-job (e.g. exam result or answer key)
                 if not job_data.is_job:

@@ -213,6 +213,17 @@ async def get_requirements(db: AsyncSession = Depends(get_db)):
     return reqs
 
 
+def deep_merge_dicts(base: dict, update: dict) -> dict:
+    """Recursively merges update dict into base dict without discarding unmentioned keys."""
+    res = dict(base)
+    for k, v in update.items():
+        if k in res and isinstance(res[k], dict) and isinstance(v, dict):
+            res[k] = deep_merge_dicts(res[k], v)
+        elif v is not None:
+            res[k] = v
+    return res
+
+
 @app.put("/api/requirements", summary="Update User Eligibility Requirements")
 async def update_requirements(
     profile: UserRequirementsProfile,
@@ -220,11 +231,24 @@ async def update_requirements(
 ):
     """
     Validates and updates user eligibility profile in the persistent database.
-    Instantly changes filtering criteria for subsequent circulars.
+    Performs safe deep merge so partial saves never discard existing information.
+    Synchronizes across database and local configuration YAML.
     """
     repo = DatabaseRepository(db)
-    saved = await repo.save_user_requirements(profile.model_dump(), "default_user")
+    existing = await repo.get_user_requirements("default_user") or {}
+    incoming = profile.model_dump()
+    merged = deep_merge_dicts(existing, incoming)
+
+    saved = await repo.save_user_requirements(merged, "default_user")
     logger.info(f"User eligibility requirements profile updated (v{saved.version})")
+
+    try:
+        os.makedirs("config", exist_ok=True)
+        with open("config/user_requirements.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(merged, f, sort_keys=False)
+    except Exception as e:
+        logger.warning(f"Failed to synchronize config/user_requirements.yaml: {e}")
+
     return {
         "status": "success",
         "version": saved.version,

@@ -1,73 +1,266 @@
-# ==============================================================================
-# DEFAULT USER ELIGIBILITY REQUIREMENTS PROFILE
-# ==============================================================================
-# This serves as the initial seed and offline template.
-# The user can dynamically edit these requirements via:
-# 1. Web Dashboard: http://localhost:8000/admin/requirements
-# 2. REST API: PUT /api/requirements
-# 3. CLI: py -m app.cli.requirements
-# 4. Telegram Bot: /profile and /set_* commands
-# ==============================================================================
-
 education:
-  minimum_level: "bachelors"    # Options: any, 10th, 12th, diploma, bachelors, masters, doctorate
+  minimum_level: bachelors
   accepted_degrees:
-    - "B.E."
-    - "B.Tech"
-    - "B.Sc"
-    - "BCA"
-    - "MCA"
-    - "M.Tech"
-    - "Graduation in any discipline"
+  - B.Tech
+  - B.E.
+  - Bachelor of Technology
+  - Bachelor of Engineering
+  - Graduation in Engineering
+  - Any Degree
   branches:
-    - "Computer Science"
-    - "Information Technology"
-    - "CSE"
-    - "IT"
-    - "Electronics"
-    - "ECE"
-    - "Any Branch"
-  minimum_percentage: 60.0
-
+  - Computer Science
+  - Information Technology
+  - CSE
+  - IT
+  - Electronics
+  - ECE
+  - Any Branch
+  minimum_percentage: 72.0
 experience:
   fresher_allowed: true
   max_years_experience_required: 2
-
 age:
   maximum: 30
-  category: "General"           # Options: General, OBC, SC, ST, EWS, PwD
+  category: General
   category_age_relaxations:
     OBC: 3
     SC: 5
     ST: 5
     PwD: 10
     Ex-Serviceman: 5
-
+    EWS: 0
 job_categories:
-  - "central_government"
-  - "state_government"
-  - "psu"
-  - "banking"
-  - "defense"
-  - "autonomous_body"
-
+- central_government
+- state_government
+- psu
+- banking
+- defense
+- autonomous_body
 location:
   allowed:
-    - "All India"
-    - "India"
-    - "Delhi"
-    - "Telangana"
-    - "Andhra Pradesh"
-    - "Karnataka"
-    - "Maharashtra"
+  - All India
   exclude_locations: []
-
 excluded_types:
-  - "internship"
-  - "unpaid_volunteer"
-  - "ad_hoc_short_term"
-
+- internship
+- unpaid_volunteer
+- ad_hoc_short_term
 notification_preferences:
   alert_on_uncertain: true
   min_vacancies: 1
   min_salary_inr_month: 0
+date_of_birth: null
+max_application_fee: 500
+matching_mode: balanced
+personal:
+  full_name: null
+  gender: Male
+  nationality: Indian
+  state_of_domicile: null
+  current_state: null
+  current_city: null
+  permanent_state: null
+  local_area_district: null
+  willing_to_relocate: true
+  willing_to_relocate_all_india: true
+  preferred_relocation_states: []
+education_history:
+  tenth_board: null
+  tenth_year: null
+  tenth_percentage: 88.5
+  tenth_cgpa: 9.2
+  twelfth_board: null
+  twelfth_year: null
+  twelfth_percentage: 78.0
+  twelfth_cgpa: null
+  twelfth_stream: ''
+  twelfth_subjects:
+  - Mathematics
+  - Physics
+  - Chemistry
+  graduation_degree: B.Tech
+  graduation_branch: Computer Science and Engineering
+  graduation_university: null
+  graduation_year: null
+  graduation_percentage: 72.0
+  graduation_cgpa: null
+  has_post_graduation: false
+  post_graduation_details: null
+  has_driving_licence: true
+  driving_licence_types: []
+  certifications: []
+education_records:
+- level: 10th
+  degree_name: Secondary School Certificate (10th)
+  branch: All Subjects
+  specialization: null
+  institution_board: null
+  passing_year: null
+  percentage: null
+  cgpa: 9.2
+  conversion_formula: null
+  mode: full_time
+  completion_status: completed
+- level: 12th
+  degree_name: Senior Secondary Certificate (12th)
+  branch: ''
+  specialization: null
+  institution_board: null
+  passing_year: null
+  percentage: 78.0
+  cgpa: null
+  conversion_formula: null
+  mode: full_time
+  completion_status: completed
+- level: bachelors
+  degree_name: B.Tech
+  branch: Computer Science and Engineering
+  specialization: null
+  institution_board: null
+  passing_year: null
+  percentage: 72.0
+  cgpa: null
+  conversion_formula: null
+  mode: full_time
+  completion_status: completed
+subjects_10_12:
+  twelfth_stream: ''
+  studied_maths_12th: true
+  studied_physics_12th: true
+  studied_chemistry_12th: true
+  studied_biology_12th: false
+  studied_computer_science_12th: true
+  studied_english: true
+  other_subjects: []
+experience_records: []
+licences:
+- category: LMV
+  validity_status: valid
+  expiry_date: null
+physical:
+  height_cm: null
+  chest_normal_cm: null
+  chest_expanded_cm: null
+  weight_kg: null
+  willing_physical_tests: false
+  willing_running: false
+  willing_jump: false
+  willing_police_standards: false
+medical:
+  willing_medical_exam: true
+  has_color_blindness: false
+  visual_standards_acceptable: true
+  eye_sight_specs: null
+role_preferences:
+  preferred_roles:
+  - Technical
+  - Software / IT
+  - Engineering
+  - Data / Analytics
+  - Administration
+  - Clerical
+  avoid_roles:
+  - Police / Uniformed
+  - Defence Combat
+  - Sales / Field Agent
+  - Manual Labor
+  - Nursing
+  work_nature: desk_only
+  job_security_preference: permanent_only
+  shift_preference: day_shifts_only
+constraints:
+  willing_physical_tests: false
+  max_application_fee: 500
+  exclude_high_fee_jobs: false
+  willing_to_travel_for_exams: true
+  max_travel_distance_km: null
+  service_bond_acceptable: true
+  max_bond_years: 3
+  transfer_tolerance: state_or_district
+  min_salary_gross_monthly: null
+salary_preferences:
+  min_gross_monthly_inr: null
+  min_basic_pay_inr: null
+  preferred_pay_level: null
+  is_hard_filter: false
+classification_preferences:
+  unknown_handling: REVIEW
+  hide_not_interested: false
+  alert_on_maybe: true
+documents_readiness:
+  degree_cert:
+    document_key: degree_cert
+    name: Degree Certificate / Marksheets
+    status: AVAILABLE
+    valid_up_to_date: null
+    notes: null
+  tenth_cert:
+    document_key: tenth_cert
+    name: 10th Board Certificate (Proof of Date of Birth)
+    status: AVAILABLE
+    valid_up_to_date: null
+    notes: null
+  twelfth_cert:
+    document_key: twelfth_cert
+    name: 12th Board Certificate
+    status: AVAILABLE
+    valid_up_to_date: null
+    notes: null
+  caste_ews_cert:
+    document_key: caste_ews_cert
+    name: Category / EWS / OBC Certificate
+    status: AVAILABLE
+    valid_up_to_date: null
+    notes: null
+  domicile_cert:
+    document_key: domicile_cert
+    name: Domicile / Residence Certificate
+    status: AVAILABLE
+    valid_up_to_date: null
+    notes: null
+  driving_licence:
+    document_key: driving_licence
+    name: Driving Licence (LMV)
+    status: NOT_APPLICABLE
+    valid_up_to_date: null
+    notes: null
+  experience_cert:
+    document_key: experience_cert
+    name: Experience Certificate / Service Letter
+    status: NOT_APPLICABLE
+    valid_up_to_date: null
+    notes: null
+  noc:
+    document_key: noc
+    name: No Objection Certificate (for Govt/PSU employees)
+    status: NOT_APPLICABLE
+    valid_up_to_date: null
+    notes: null
+avoid_organizations: []
+preferred_organizations:
+- ISRO
+- DRDO
+- BARC
+- UPSC
+- SSC
+- NIC
+- RBI
+- SBI
+- IOCL
+- ONGC
+- NTPC
+- BHEL
+branch_mappings:
+  Computer Science: ACCEPT
+  Information Technology: ACCEPT
+  CSE: ACCEPT
+  IT: ACCEPT
+  Computer Engineering: ACCEPT
+  AI & ML: ACCEPT
+  Data Science: ACCEPT
+  Electronics: ACCEPT
+  ECE: ACCEPT
+  Electrical: POSSIBLY_ACCEPT
+  Mechanical: DO_NOT_ACCEPT
+  Civil: DO_NOT_ACCEPT
+hard_exclusions: []
+target_jobs: []

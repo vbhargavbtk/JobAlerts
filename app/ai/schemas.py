@@ -31,10 +31,25 @@ class FieldEvidence(BaseModel):
         return data
 
 
+class PostItemSchema(BaseModel):
+    post_name: str = Field(default="", description="Name of individual post")
+    vacancies: Optional[int] = Field(None, description="Number of vacancies for this post")
+    qualification: List[str] = Field(default_factory=list, description="Qualifications for this post")
+    accepted_branches: List[str] = Field(default_factory=list, description="Branches accepted for this post")
+    age_min: Optional[int] = Field(None, description="Minimum age for this post")
+    age_max: Optional[int] = Field(None, description="Maximum age for this post")
+    experience_required: Optional[bool] = Field(None, description="Experience required for this post")
+    experience_years_min: Optional[int] = Field(None, description="Minimum experience years for this post")
+
+
 class JobExtractionSchema(BaseModel):
     is_job: bool = Field(
         default=True,
         description="True if content announces an active job/recruitment vacancy. False if exam result, answer key, admission, syllabus, or general news."
+    )
+    posts: List[PostItemSchema] = Field(
+        default_factory=list,
+        description="List of individual posts for multi-post notifications"
     )
     job_type: Optional[str] = Field(
         None,
@@ -179,6 +194,11 @@ class JobExtractionSchema(BaseModel):
             data["evidence"] = []
         elif not isinstance(ev, list):
             data["evidence"] = [ev]
+
+        # Sanitize posts list
+        pts = data.get("posts")
+        if pts is None or not isinstance(pts, list):
+            data["posts"] = []
         
         # Sanitize vacancies
         vac = data.get("vacancies")

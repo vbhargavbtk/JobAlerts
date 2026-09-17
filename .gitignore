@@ -66,3 +66,4 @@ logs/
 temp/
 scratch/
 downloads/
+scripts/*.json

@@ -1271,7 +1271,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       <a href="/jobs" class="brand-logo">Job Alerts</a>
       <nav class="nav-tabs">
         <a href="/jobs" class="nav-tab active" id="navJobs" onclick="navigateToView('jobs', event)">Jobs</a>
-        <a href="/plan-to-apply" class="nav-tab" id="navPlan" onclick="navigateToView('plan_to_apply', event)">⭐ Plan to Apply</a>
+        <a href="/plan-to-apply" class="nav-tab" id="navPlan" onclick="navigateToView('plan_to_apply', event)">⭐ Want to Apply</a>
         <a href="/applied" class="nav-tab" id="navApplied" onclick="navigateToView('applied', event)">✓ Applied</a>
         <a href="/admin/requirements" class="nav-tab" id="navProfile">Profile &amp; Rules</a>
         <a href="/admin/channels" class="nav-tab" id="navChannels">Channels</a>
@@ -1314,11 +1314,17 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
           <!-- SEGMENTED CONTROLS -->
           <div class="segmented-control" id="statusSegments">
-            <button class="segment-btn active" data-status="ELIGIBLE" onclick="setStatusSegment('ELIGIBLE')">
-              For you <span class="count-chip" id="countEligibleChip">0</span>
+            <button class="segment-btn active" data-status="WANT_TO_APPLY" onclick="setStatusSegment('WANT_TO_APPLY')">
+              ⭐ Want to Apply <span class="count-chip" id="countWantApplyChip">0</span>
+            </button>
+            <button class="segment-btn" data-status="MAYBE" onclick="setStatusSegment('MAYBE')">
+              Maybe <span class="count-chip" id="countMaybeChip">0</span>
             </button>
             <button class="segment-btn" data-status="UNCERTAIN" onclick="setStatusSegment('UNCERTAIN')">
               Needs review <span class="count-chip" id="countReviewChip">0</span>
+            </button>
+            <button class="segment-btn" data-status="NOT_INTERESTED" onclick="setStatusSegment('NOT_INTERESTED')">
+              Not Interested <span class="count-chip" id="countNotInterestedChip">0</span>
             </button>
             <button class="segment-btn" data-status="ALL" onclick="setStatusSegment('ALL')">
               All
@@ -1443,7 +1449,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
   <script>
     let allJobs = [];
     let currentView = 'jobs'; // 'jobs' | 'plan_to_apply' | 'applied'
-    let currentSegment = 'ELIGIBLE';
+    let currentSegment = 'WANT_TO_APPLY';
     let isFreeOnly = false;
     let maxFeeLimit = 2000;
     let isFresherOnly = false;
@@ -1549,14 +1555,18 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
     }
 
     function updateTopMetrics() {
-      const eligible = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE').length;
+      const wantApply = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE' && (j.eligibility_explanation?.preference_status === 'WANT_TO_APPLY' || j.eligibility_explanation?.combined_status === 'ELIGIBLE + WANT TO APPLY')).length;
+      const maybe = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE' && (j.eligibility_explanation?.preference_status === 'MAYBE' || j.eligibility_explanation?.combined_status === 'ELIGIBLE + MAYBE' || !j.eligibility_explanation?.preference_status)).length;
       const review = allJobs.filter(j => j.eligibility_status === 'UNCERTAIN').length;
+      const notInterested = allJobs.filter(j => j.eligibility_status === 'ELIGIBLE' && (j.eligibility_explanation?.preference_status === 'NOT_INTERESTED' || j.eligibility_explanation?.combined_status === 'ELIGIBLE + NOT INTERESTED')).length;
       const free = allJobs.filter(j => j.is_free).length;
 
       const heroSummaryBar = document.getElementById('heroSummaryBar');
       if (heroSummaryBar) {
         heroSummaryBar.innerHTML = `
-          <span id="heroStatEligible">${eligible} eligible opportunities</span>
+          <span id="heroStatEligible">${wantApply} priority matches</span>
+          <span class="summary-dot"></span>
+          <span id="heroStatMaybe">${maybe} maybe</span>
           <span class="summary-dot"></span>
           <span id="heroStatReview">${review} need review</span>
           <span class="summary-dot"></span>
@@ -1564,10 +1574,14 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         `;
       }
 
-      const elChip = document.getElementById('countEligibleChip');
-      if (elChip) elChip.textContent = eligible;
+      const wantChip = document.getElementById('countWantApplyChip');
+      if (wantChip) wantChip.textContent = wantApply;
+      const maybeChip = document.getElementById('countMaybeChip');
+      if (maybeChip) maybeChip.textContent = maybe;
       const revChip = document.getElementById('countReviewChip');
       if (revChip) revChip.textContent = review;
+      const notIntChip = document.getElementById('countNotInterestedChip');
+      if (notIntChip) notIntChip.textContent = notInterested;
     }
 
     function setStatusSegment(status) {
@@ -1682,16 +1696,16 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       // Optimistic UI update
       job.user_status = newStatus;
       if (newStatus === null) {
-        showToast('Removed from Plan to Apply');
+        showToast('Removed from Want to Apply');
       } else {
-        showToast('Added to Plan to Apply');
+        showToast('Added to Want to Apply');
       }
 
       if (currentView === 'plan_to_apply') {
         const plannedCount = allJobs.filter(j => j.user_status === 'plan_to_apply').length;
         const heroSummaryBar = document.getElementById('heroSummaryBar');
         if (heroSummaryBar) {
-          heroSummaryBar.innerHTML = `<span>${plannedCount} planned ${plannedCount === 1 ? 'opportunity' : 'opportunities'}</span>`;
+          heroSummaryBar.innerHTML = `<span>${plannedCount} saved in Want to Apply</span>`;
         }
       }
 
@@ -1723,7 +1737,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
       const oldStatus = job.user_status;
       const oldAppliedAt = job.applied_at;
 
-      // Optimistic UI update: Marking as Applied automatically removes from Plan to Apply
+      // Optimistic UI update: Marking as Applied automatically removes from Want to Apply
       job.user_status = newStatus;
       job.applied_at = willBeApplied ? new Date().toISOString() : null;
 
@@ -1774,13 +1788,17 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
 
       // Heading title
       if (currentView === 'plan_to_apply') {
-        document.getElementById('sectionTitleHeading').textContent = 'Plan to Apply';
+        document.getElementById('sectionTitleHeading').textContent = '⭐ Want to Apply';
       } else if (currentView === 'applied') {
-        document.getElementById('sectionTitleHeading').textContent = 'Applied';
-      } else if (currentSegment === 'ELIGIBLE') {
-        document.getElementById('sectionTitleHeading').textContent = 'For you';
+        document.getElementById('sectionTitleHeading').textContent = '✓ Applied';
+      } else if (currentSegment === 'WANT_TO_APPLY') {
+        document.getElementById('sectionTitleHeading').textContent = '⭐ Want to Apply (Priority Matches)';
+      } else if (currentSegment === 'MAYBE') {
+        document.getElementById('sectionTitleHeading').textContent = 'Maybe (Eligible Opportunities)';
       } else if (currentSegment === 'UNCERTAIN') {
-        document.getElementById('sectionTitleHeading').textContent = 'Needs review';
+        document.getElementById('sectionTitleHeading').textContent = 'Needs Review';
+      } else if (currentSegment === 'NOT_INTERESTED') {
+        document.getElementById('sectionTitleHeading').textContent = 'Not Interested (Eligible but Deprioritized)';
       } else {
         document.getElementById('sectionTitleHeading').textContent = 'All Opportunities';
       }
@@ -1792,9 +1810,23 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         } else if (currentView === 'applied') {
           if (job.user_status !== 'applied') return false;
         } else {
-          // Regular jobs view
-          if (currentSegment !== 'ALL' && job.eligibility_status !== currentSegment) {
-            return false;
+          // Regular jobs view: 3-tier preference filtering
+          const expl = job.eligibility_explanation || {};
+          const pref = expl.preference_status;
+          const comb = expl.combined_status || job.eligibility_status;
+
+          if (currentSegment === 'WANT_TO_APPLY') {
+            if (job.eligibility_status !== 'ELIGIBLE') return false;
+            if (pref !== 'WANT_TO_APPLY' && comb !== 'ELIGIBLE + WANT TO APPLY') return false;
+          } else if (currentSegment === 'MAYBE') {
+            if (job.eligibility_status !== 'ELIGIBLE') return false;
+            if (pref === 'NOT_INTERESTED' || comb === 'ELIGIBLE + NOT INTERESTED') return false;
+            if (pref === 'WANT_TO_APPLY' || comb === 'ELIGIBLE + WANT TO APPLY') return false;
+          } else if (currentSegment === 'NOT_INTERESTED') {
+            if (job.eligibility_status !== 'ELIGIBLE') return false;
+            if (pref !== 'NOT_INTERESTED' && comb !== 'ELIGIBLE + NOT INTERESTED') return false;
+          } else if (currentSegment === 'UNCERTAIN') {
+            if (job.eligibility_status !== 'UNCERTAIN') return false;
           }
           if (maxFeeLimit < 2000) {
             if (maxFeeLimit === 0) {
@@ -1943,14 +1975,32 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         const isPlanToApply = (job.user_status === 'plan_to_apply');
         const isApplied = (job.user_status === 'applied');
 
-        // Status badge
+        // Status badge with 3-tier preference support
         let statusBadgeHtml = '';
+        const expl = job.eligibility_explanation || {};
+        const pref = expl.preference_status;
+        const comb = expl.combined_status || job.eligibility_status;
+
         if (job.eligibility_status === 'ELIGIBLE') {
-          statusBadgeHtml = `<span class="status-badge status-eligible"><span class="status-dot"></span> Eligible</span>`;
+          if (pref === 'WANT_TO_APPLY' || comb === 'ELIGIBLE + WANT TO APPLY') {
+            statusBadgeHtml = `<span class="status-badge status-eligible"><span class="status-dot"></span> Eligible · Want to Apply</span>`;
+          } else if (pref === 'NOT_INTERESTED' || comb === 'ELIGIBLE + NOT INTERESTED') {
+            statusBadgeHtml = `<span class="status-badge" style="background: var(--bg-surface-secondary); color: var(--text-secondary);"><span class="status-dot" style="background: var(--text-tertiary);"></span> Eligible · Not Interested</span>`;
+          } else {
+            statusBadgeHtml = `<span class="status-badge status-eligible" style="background: #E8F0FE; color: #1A73E8;"><span class="status-dot" style="background: #1A73E8;"></span> Eligible · Maybe</span>`;
+          }
         } else if (job.eligibility_status === 'UNCERTAIN') {
           statusBadgeHtml = `<span class="status-badge status-uncertain"><span class="status-dot"></span> Review needed</span>`;
         } else {
           statusBadgeHtml = `<span class="status-badge status-ineligible"><span class="status-dot"></span> Ineligible</span>`;
+        }
+
+        // Tier D Application Readiness badge
+        let readinessBadgeHtml = '';
+        if (expl.readiness_status === 'WARNING') {
+          readinessBadgeHtml = `<span class="status-badge" style="background: #FFF3CD; color: #856404; font-size: 11px; padding: 2px 8px;"><span class="status-dot" style="background: #E0A800;"></span> ⚠ Doc Warning</span>`;
+        } else if (expl.readiness_status === 'MISSING_DOCUMENTS') {
+          readinessBadgeHtml = `<span class="status-badge" style="background: #FEECEB; color: #FF3B30; font-size: 11px; padding: 2px 8px;"><span class="status-dot" style="background: #FF3B30;"></span> ✕ Missing Doc</span>`;
         }
 
         // Applied date badge
@@ -2003,6 +2053,7 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
               <div class="card-org-name">${org}</div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 ${statusBadgeHtml}
+                ${readinessBadgeHtml}
                 ${appliedDateBadgeHtml}
               </div>
             </div>
@@ -2104,11 +2155,106 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         }
         criteriaHtml = `
           <div class="sheet-section">
-            <div class="sheet-section-heading">Eligibility Evaluation</div>
+            <div class="sheet-section-heading">Eligibility Evaluation (Tier A)</div>
             <div class="criteria-checklist">${rows.join('')}</div>
           </div>
         `;
       }
+
+      // Personal Preference & Constraints Breakdown (Tier B & C)
+      let prefHtml = '';
+      const prefBreakdown = expl.preference_breakdown || {};
+      const warnings = expl.constraints_warnings || [];
+      const combinedStatus = expl.combined_status || job.eligibility_status;
+
+      if (Object.keys(prefBreakdown).length > 0 || warnings.length > 0 || expl.preference_status) {
+        const prefRows = [];
+        for (const [k, msg] of Object.entries(prefBreakdown)) {
+          const isNegative = k.includes('avoid') || k.includes('tenure');
+          const icon = isNegative ? '✕' : '★';
+          const cls = isNegative ? 'criteria-warn' : 'criteria-pass';
+          prefRows.push(`
+            <div class="criteria-row">
+              <div class="criteria-indicator ${cls}">${icon}</div>
+              <div>
+                <div style="font-weight: 500; color: var(--text-primary); font-size: 13px;">Personal Preference</div>
+                <div style="color: var(--text-secondary); font-size: 12px; margin-top: 1px;">${escapeHtml(String(msg))}</div>
+              </div>
+            </div>
+          `);
+        }
+        for (const w of warnings) {
+          prefRows.push(`
+            <div class="criteria-row">
+              <div class="criteria-indicator criteria-warn" style="background: var(--status-amber-bg); color: var(--status-amber);">⚠</div>
+              <div>
+                <div style="font-weight: 500; color: var(--text-primary); font-size: 13px;">Application Constraint</div>
+                <div style="color: var(--text-secondary); font-size: 12px; margin-top: 1px;">${escapeHtml(String(w))}</div>
+              </div>
+            </div>
+          `);
+        }
+        prefHtml = `
+          <div class="sheet-section">
+            <div class="sheet-section-heading">Personal Preference &amp; Constraints (Tier B &amp; C)</div>
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+              Verdict: <span style="color: var(--accent-blue);">${escapeHtml(combinedStatus)}</span>
+            </div>
+            <div class="criteria-checklist">${prefRows.join('')}</div>
+          </div>
+        `;
+      }
+
+      // Application Readiness (Tier D)
+      let readinessHtml = '';
+      const readinessStatus = expl.readiness_status || 'READY';
+      const readinessWarnings = expl.readiness_warnings || [];
+
+      let readinessHeadingColor = '#34C759';
+      let readinessTitle = 'All Certificates Ready';
+
+      if (readinessStatus === 'WARNING') {
+        readinessHeadingColor = '#B25E02';
+        readinessTitle = 'Action Required / Certificate Renewal';
+      } else if (readinessStatus === 'MISSING_DOCUMENTS') {
+        readinessHeadingColor = '#FF3B30';
+        readinessTitle = 'Mandatory Application Document Missing';
+      }
+
+      const readinessRows = [];
+      if (readinessWarnings.length > 0) {
+        for (const rw of readinessWarnings) {
+          readinessRows.push(`
+            <div class="criteria-row">
+              <div class="criteria-indicator criteria-warn" style="background: #FFF3CD; color: #856404;">⚠</div>
+              <div>
+                <div style="font-weight: 500; color: var(--text-primary); font-size: 13px;">Document Requirement</div>
+                <div style="color: var(--text-secondary); font-size: 12px; margin-top: 1px;">${escapeHtml(String(rw))}</div>
+              </div>
+            </div>
+          `);
+        }
+      } else {
+        readinessRows.push(`
+          <div class="criteria-row">
+            <div class="criteria-indicator criteria-pass">✓</div>
+            <div>
+              <div style="font-weight: 500; color: var(--text-primary); font-size: 13px;">Certificates Verified</div>
+              <div style="color: var(--text-secondary); font-size: 12px; margin-top: 1px;">All required documents (Category, Degree, Licences, Marksheets) are current and marked available in candidate profile.</div>
+            </div>
+          </div>
+        `);
+      }
+
+      readinessHtml = `
+        <div class="sheet-section">
+          <div class="sheet-section-heading">Application Readiness (Tier D)</div>
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: ${readinessHeadingColor};">
+            Verdict: ${escapeHtml(readinessTitle)}
+          </div>
+          <div class="criteria-checklist">${readinessRows.join('')}</div>
+        </div>
+      `;
 
       // Qualifications & Branches
       const quals = (sd.qualification || []).map(q => `<span class="spec-tag">${escapeHtml(q)}</span>`).join('');
@@ -2203,6 +2349,8 @@ JOBS_DASHBOARD_HTML = r"""<!DOCTYPE html>
         </div>
 
         ${criteriaHtml}
+        ${prefHtml}
+        ${readinessHtml}
 
         <div class="sheet-section">
           <div class="sheet-section-heading">Education & Discipline</div>
